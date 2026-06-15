@@ -1,71 +1,97 @@
-import { useState } from 'react'
-import { Search, Loader2, BookmarkPlus, Check, ExternalLink } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Loader2, BookmarkPlus, Check, ExternalLink, RefreshCw } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
-import { useAuthStore } from '@/store/authStore'
 import { useCreateReference } from '@/hooks/useReferences'
 import { searchYouTube, calcBrandFit, calcCringeRisk, calcGrowthPotential } from '@/lib/youtube'
 import type { YouTubeVideo } from '@/lib/youtube'
 import { cn } from '@/lib/utils'
 
-const PRESET_QUERIES = ['아침 루틴 브이로그', '웰니스 라이프스타일', '마음챙김 명상', '건강한 하루 시작', 'morning routine wellness']
+const CATEGORIES = [
+  { label: '아침 루틴', query: '아침 루틴 브이로그 웰니스', emoji: '🌅' },
+  { label: '웰니스', query: '웰니스 라이프스타일 건강한 하루', emoji: '🌿' },
+  { label: '마음챙김', query: '마음챙김 명상 멘탈 루틴', emoji: '🧘' },
+  { label: '커뮤니티', query: '함께하는 루틴 커뮤니티 챌린지', emoji: '🤝' },
+  { label: '라이프스타일', query: '미니멀 라이프스타일 도시 일상 루틴', emoji: '✨' },
+]
 
-function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
+function generateWhyFit(video: YouTubeVideo, brandFit: number, cringeRisk: number): string {
+  if (brandFit >= 60 && cringeRisk <= 20) return '아침 루틴·커뮤니티 키워드가 SMCC 철학과 잘 맞아요.'
+  if (brandFit >= 40 && cringeRisk <= 30) return '건강한 변화를 담은 콘텐츠로 참고 가치가 높아요.'
+  if (cringeRisk >= 50) return '자극적 요소가 있어 참고는 되지만 톤은 조정 필요해요.'
+  if (video.viewCount > 500000) return '높은 조회수로 포맷·편집 스타일 참고에 좋아요.'
+  return '브랜드 무드와 유사한 감성의 콘텐츠예요.'
+}
+
+function ScoreChip({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div>
-      <div className="flex justify-between text-xs text-[#4D7F95] mb-1">
-        <span>{label}</span>
-        <span className="font-medium">{value}</span>
+    <div className="flex flex-col items-center gap-0.5">
+      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+        style={{ backgroundColor: color }}>
+        {value}
       </div>
-      <div className="h-1.5 bg-[#f3f4f6] rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, backgroundColor: color }} />
-      </div>
+      <span className="text-[11px] text-[#9ca3af]">{label}</span>
     </div>
   )
 }
 
-function VideoCard({ video, onSave, saved }: { video: YouTubeVideo; onSave: () => void; saved: boolean }) {
-  const brandFit = calcBrandFit(video.title, video.description, video.tags)
-  const cringeRisk = calcCringeRisk(video.title, video.description)
-  const growthPotential = calcGrowthPotential(video.viewCount, video.subscriberCount, video.publishedAt)
+interface EnrichedVideo extends YouTubeVideo {
+  brandFit: number
+  cringeRisk: number
+  growthPotential: number
+  whyFit: string
+}
 
+function VideoCard({ video, onSave, saved }: { video: EnrichedVideo; onSave: () => void; saved: boolean }) {
   const fmt = (n: number) => n >= 10000 ? `${(n / 10000).toFixed(1)}만` : n.toLocaleString()
 
   return (
-    <div className="bg-white rounded-xl border border-[#e5e7eb] overflow-hidden hover:border-[#9FC6C8] hover:shadow-md transition-all">
+    <div className="bg-white rounded-xl border border-[#e5e7eb] overflow-hidden hover:border-[#9FC6C8] hover:shadow-md transition-all flex flex-col">
       <div className="relative">
         <img src={video.thumbnail} alt={video.title} className="w-full h-40 object-cover" />
         <a
           href={`https://www.youtube.com/watch?v=${video.id}`}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
           className="absolute top-2 right-2 p-1.5 bg-white/80 rounded-lg text-[#9ca3af] hover:text-[#00b1cd] transition-colors"
         >
           <ExternalLink size={13} />
         </a>
+        {video.cringeRisk >= 50 && (
+          <span className="absolute top-2 left-2 px-2 py-0.5 bg-[#FEE2E2] text-[#991B1B] text-[11px] rounded-full font-medium">
+            주의
+          </span>
+        )}
       </div>
 
-      <div className="p-3.5">
+      <div className="p-3.5 flex flex-col flex-1">
         <p className="text-sm font-medium text-[#0B3558] leading-snug line-clamp-2 mb-1">{video.title}</p>
         <p className="text-xs text-[#9ca3af] mb-3">{video.channelTitle} · 조회 {fmt(video.viewCount)}</p>
 
-        <div className="space-y-2 mb-3">
-          <ScoreBar label="Brand Fit" value={brandFit} color="#00b1cd" />
-          <ScoreBar label="Cringe Risk" value={cringeRisk} color="#F43F55" />
-          <ScoreBar label="Growth Potential" value={growthPotential} color="#FDB334" />
+        {/* AI 코멘트 */}
+        <div className="bg-[#f9fafb] rounded-lg px-3 py-2 mb-3">
+          <p className="text-xs text-[#4D7F95] leading-relaxed">💡 {video.whyFit}</p>
+        </div>
+
+        {/* 점수 */}
+        <div className="flex justify-around mb-3">
+          <ScoreChip label="Brand Fit" value={video.brandFit} color="#00b1cd" />
+          <ScoreChip label="Cringe" value={video.cringeRisk} color="#F43F55" />
+          <ScoreChip label="Growth" value={video.growthPotential} color="#FDB334" />
         </div>
 
         <button
           onClick={onSave}
           disabled={saved}
           className={cn(
-            'w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
+            'mt-auto w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
             saved
               ? 'bg-[#e6f7fa] text-[#00899e] cursor-default'
               : 'bg-[#00b1cd] text-white hover:bg-[#008fa6]'
           )}
         >
           {saved ? <Check size={14} /> : <BookmarkPlus size={14} />}
-          {saved ? '저장됨' : '레퍼런스로 저장'}
+          {saved ? '저장됨' : '저장하기'}
         </button>
       </div>
     </div>
@@ -73,37 +99,38 @@ function VideoCard({ video, onSave, saved }: { video: YouTubeVideo; onSave: () =
 }
 
 export function DiscoverPage() {
-  const userId = useAuthStore((s) => s.user?.id)
   const createReference = useCreateReference()
-
-  const [query, setQuery] = useState('')
-  const [videos, setVideos] = useState<YouTubeVideo[]>([])
+  const [activeCat, setActiveCat] = useState(0)
+  const [videos, setVideos] = useState<EnrichedVideo[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
 
-  const handleSearch = async (q: string) => {
-    const searchQuery = q || query
-    if (!searchQuery.trim()) return
-    setQuery(searchQuery)
+  const fetchCategory = async (catIndex: number) => {
     setLoading(true)
-    setError(null)
+    setVideos([])
     try {
-      const results = await searchYouTube(searchQuery)
-      setVideos(results)
+      const raw = await searchYouTube(CATEGORIES[catIndex].query, 12)
+      const enriched: EnrichedVideo[] = raw.map((v) => {
+        const brandFit = calcBrandFit(v.title, v.description, v.tags)
+        const cringeRisk = calcCringeRisk(v.title, v.description)
+        const growthPotential = calcGrowthPotential(v.viewCount, v.subscriberCount, v.publishedAt)
+        return { ...v, brandFit, cringeRisk, growthPotential, whyFit: generateWhyFit(v, brandFit, cringeRisk) }
+      })
+      // Brand Fit 높고 Cringe Risk 낮은 순 정렬
+      enriched.sort((a, b) => (b.brandFit - b.cringeRisk * 0.5) - (a.brandFit - a.cringeRisk * 0.5))
+      setVideos(enriched)
     } catch {
-      setError('검색 중 오류가 발생했어요. YouTube API 키를 확인해주세요.')
+      setVideos([])
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSave = async (video: YouTubeVideo) => {
-    if (!userId) return
-    const brandFit = calcBrandFit(video.title, video.description, video.tags)
-    const cringeRisk = calcCringeRisk(video.title, video.description)
-    const growthPotential = calcGrowthPotential(video.viewCount, video.subscriberCount, video.publishedAt)
+  useEffect(() => {
+    fetchCategory(activeCat)
+  }, [activeCat])
 
+  const handleSave = async (video: EnrichedVideo) => {
     await createReference.mutateAsync({
       url: `https://www.youtube.com/watch?v=${video.id}`,
       title: video.title,
@@ -111,90 +138,75 @@ export function DiscoverPage() {
       content_format: 'video',
       thumbnail_url: video.thumbnail,
       tags: video.tags.slice(0, 5),
-      brand_fit_score: brandFit,
-      cringe_risk_score: cringeRisk,
-      growth_potential_score: growthPotential,
+      brand_fit_score: video.brandFit,
+      cringe_risk_score: video.cringeRisk,
+      growth_potential_score: video.growthPotential,
     })
     setSavedIds((prev) => new Set(prev).add(video.id))
   }
 
   return (
     <div className="p-8">
-      <PageHeader
-        title="Discover"
-        description="AI가 YouTube에서 레퍼런스를 찾아드려요. 마음에 드는 것을 저장하세요."
-      />
-
-      {/* 검색창 */}
-      <div className="flex gap-3 mb-5">
-        <div className="flex-1 relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch(query)}
-            placeholder="검색어 입력... (예: 아침 루틴, 웰니스)"
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#e5e7eb] bg-white text-sm text-[#0B3558] outline-none focus:border-[#00b1cd] focus:ring-2 focus:ring-[#e6f7fa] transition-colors"
-          />
-        </div>
+      <div className="flex items-start justify-between mb-6">
+        <PageHeader
+          title="Discover"
+          description="AI가 SMCC 브랜드에 맞는 트렌딩 콘텐츠를 찾아드려요."
+        />
         <button
-          onClick={() => handleSearch(query)}
+          onClick={() => fetchCategory(activeCat)}
           disabled={loading}
-          className="px-5 py-2.5 bg-[#00b1cd] text-white text-sm font-medium rounded-lg hover:bg-[#008fa6] disabled:opacity-60 transition-colors flex items-center gap-2"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e5e7eb] text-sm text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd] transition-colors disabled:opacity-40 mt-1"
         >
-          {loading && <Loader2 size={14} className="animate-spin" />}
-          검색
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          새로고침
         </button>
       </div>
 
-      {/* 프리셋 태그 */}
-      {videos.length === 0 && !loading && (
-        <div className="flex flex-wrap gap-2 mb-8">
-          {PRESET_QUERIES.map((q) => (
-            <button
-              key={q}
-              onClick={() => handleSearch(q)}
-              className="px-3 py-1.5 rounded-full text-sm bg-[#e6f7fa] text-[#00899e] hover:bg-[#00b1cd] hover:text-white transition-colors"
-            >
-              {q}
-            </button>
+      {/* 카테고리 탭 */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {CATEGORIES.map((cat, i) => (
+          <button
+            key={cat.label}
+            onClick={() => { setActiveCat(i) }}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors',
+              activeCat === i
+                ? 'bg-[#00b1cd] text-white'
+                : 'bg-white border border-[#e5e7eb] text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd]'
+            )}
+          >
+            <span>{cat.emoji}</span>
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 로딩 */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-24 gap-3">
+          <Loader2 size={32} className="animate-spin text-[#00b1cd]" />
+          <p className="text-sm text-[#4D7F95]">트렌딩 콘텐츠 분석 중...</p>
+        </div>
+      )}
+
+      {/* 결과 그리드 */}
+      {!loading && videos.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {videos.map((video) => (
+            <VideoCard
+              key={video.id}
+              video={video}
+              onSave={() => handleSave(video)}
+              saved={savedIds.has(video.id)}
+            />
           ))}
         </div>
       )}
 
-      {/* 에러 */}
-      {error && <p className="text-sm text-[#F43F55] mb-4">{error}</p>}
-
-      {/* 로딩 */}
-      {loading && (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={28} className="animate-spin text-[#00b1cd]" />
-        </div>
-      )}
-
-      {/* 결과 */}
-      {!loading && videos.length > 0 && (
-        <>
-          <p className="text-sm text-[#4D7F95] mb-4">"{query}" 검색 결과 {videos.length}개</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {videos.map((video) => (
-              <VideoCard
-                key={video.id}
-                video={video}
-                onSave={() => handleSave(video)}
-                saved={savedIds.has(video.id)}
-              />
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* 빈 상태 */}
-      {!loading && videos.length === 0 && !error && (
+      {!loading && videos.length === 0 && (
         <div className="text-center py-20">
-          <p className="text-2xl mb-3">🔍</p>
-          <p className="text-sm text-[#4D7F95]">키워드를 입력하거나 위 태그를 눌러 검색해보세요.</p>
+          <p className="text-2xl mb-3">😅</p>
+          <p className="text-sm text-[#4D7F95]">콘텐츠를 불러오지 못했어요. 새로고침을 눌러주세요.</p>
         </div>
       )}
     </div>
