@@ -95,6 +95,9 @@ export function Sidebar() {
             <p className="text-[17px] text-[#9ca3af] truncate">{user.email}</p>
           </div>
         )}
+        <div className="px-3 pb-1">
+          <p className="text-[13px] text-[#d1d5db]">v{__APP_VERSION__}</p>
+        </div>
       </div>
     </aside>
   )
