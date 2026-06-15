@@ -1,0 +1,77 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+@import "tailwindcss";
+
+@theme {
+  /* Primary */
+  --color-primary: #00b1cd;
+  --color-primary-light: #33c4d8;
+  --color-primary-lighter: #e6f7fa;
+  --color-primary-dark: #008fa6;
+
+  /* Surface */
+  --color-surface-base: #ffffff;
+  --color-surface-soft: #f9fafb;
+  --color-surface-warm: #fdf8f4;
+  --color-surface-muted: #f3f4f6;
+
+  /* Border */
+  --color-border-default: #e5e7eb;
+  --color-border-strong: #d1d5db;
+  --color-border-mist: #9FC6C8;
+
+  /* Text */
+  --color-text-primary: #0B3558;
+  --color-text-secondary: #4D7F95;
+  --color-text-muted: #9ca3af;
+  --color-text-inverse: #ffffff;
+
+  /* Semantic */
+  --color-success: #10b981;
+  --color-warning: #FDB334;
+  --color-danger: #F43F55;
+
+  /* Brand Extended */
+  --color-morning-peach: #F8DEC2;
+  --color-warm-sand: #FFC982;
+  --color-golden-hour: #FDB334;
+  --color-sunrise: #FF7048;
+  --color-deep-rose: #F43F55;
+  --color-deep-plum: #51334F;
+  --color-navy: #0B3558;
+  --color-steel-blue: #4D7F95;
+  --color-mist: #9FC6C8;
+  --color-sage: #C7D8D2;
+
+  /* Font */
+  --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-soft);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 스크롤바 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 3px;
+}
