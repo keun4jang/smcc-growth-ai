@@ -41,7 +41,7 @@ export function calcGrowthPotential(viewCount: number, subscriberCount: number, 
 
 export async function searchYouTube(query: string, maxResults = 12): Promise<YouTubeVideo[]> {
   const searchRes = await fetch(
-    `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=${maxResults}&key=${API_KEY}`
+    `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoDuration=short&maxResults=${maxResults}&key=${API_KEY}`
   )
   if (!searchRes.ok) throw new Error('YouTube 검색 실패')
   const searchData = await searchRes.json()
