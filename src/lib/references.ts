@@ -70,6 +70,9 @@ export async function createReference(
       collection_id: input.collection_id ?? null,
       tags: input.tags ?? [],
       thumbnail_url: input.thumbnail_url ?? null,
+      brand_fit_score: input.brand_fit_score ?? 50,
+      cringe_risk_score: input.cringe_risk_score ?? 50,
+      growth_potential_score: input.growth_potential_score ?? 50,
     })
     .select('*')
     .single()

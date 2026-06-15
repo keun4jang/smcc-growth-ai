@@ -10,6 +10,7 @@ import { CalendarPage } from '@/pages/CalendarPage'
 import { AnalysisPage } from '@/pages/AnalysisPage'
 import { BrandGuidePage } from '@/pages/BrandGuidePage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { DiscoverPage } from '@/pages/DiscoverPage'
 import { useAuth } from '@/hooks/useAuth'
 
 const queryClient = new QueryClient({
@@ -48,6 +49,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="discover" element={<DiscoverPage />} />
         <Route path="references" element={<ReferencesPage />} />
         <Route path="references/:id" element={<ReferenceDetailPage />} />
         <Route path="analysis" element={<AnalysisPage />} />

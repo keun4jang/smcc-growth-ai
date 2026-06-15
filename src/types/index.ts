@@ -97,6 +97,9 @@ export interface CreateReferenceInput {
   collection_id?: string | null
   tags?: string[]
   thumbnail_url?: string | null
+  brand_fit_score?: number
+  cringe_risk_score?: number
+  growth_potential_score?: number
 }
 
 export interface UpdateReferenceInput {

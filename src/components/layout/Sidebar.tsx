@@ -7,12 +7,14 @@ import {
   Sparkles,
   Settings,
   LogOut,
+  Telescope,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/discover', icon: Telescope, label: 'Discover' },
   { to: '/references', icon: Library, label: 'References' },
   { to: '/ideas', icon: Lightbulb, label: 'Content Ideas' },
   { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
