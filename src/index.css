@@ -52,6 +52,10 @@
   --radius-xl: 16px;
 }
 
+html {
+  font-size: 150%;
+}
+
 * {
   box-sizing: border-box;
 }

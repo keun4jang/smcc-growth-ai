@@ -37,8 +37,8 @@ export function Sidebar() {
             <Sparkles size={14} className="text-white" />
           </div>
           <div>
-            <p className="text-[13px] font-700 text-[#0B3558] leading-tight">SMCC</p>
-            <p className="text-[11px] text-[#4D7F95] leading-tight">Growth Coach</p>
+            <p className="text-[20px] font-700 text-[#0B3558] leading-tight">SMCC</p>
+            <p className="text-[17px] text-[#4D7F95] leading-tight">Growth Coach</p>
           </div>
         </div>
       </div>
@@ -92,7 +92,7 @@ export function Sidebar() {
 
         {user && (
           <div className="px-3 pt-2">
-            <p className="text-[11px] text-[#9ca3af] truncate">{user.email}</p>
+            <p className="text-[17px] text-[#9ca3af] truncate">{user.email}</p>
           </div>
         )}
       </div>

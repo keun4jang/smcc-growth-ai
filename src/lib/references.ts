@@ -12,7 +12,7 @@ export async function getReferences(
 ): Promise<SavedReference[]> {
   let query = supabase
     .from('saved_references')
-    .select('*, collection:reference_collections(*)')
+    .select('*')
     .eq('user_id', userId)
 
   if (filters.platform) query = query.eq('platform', filters.platform)
@@ -47,7 +47,7 @@ export async function getReferences(
 export async function getReferenceById(id: string): Promise<SavedReference | null> {
   const { data, error } = await supabase
     .from('saved_references')
-    .select('*, collection:reference_collections(*)')
+    .select('*')
     .eq('id', id)
     .single()
 
@@ -71,7 +71,7 @@ export async function createReference(
       tags: input.tags ?? [],
       thumbnail_url: input.thumbnail_url ?? null,
     })
-    .select('*, collection:reference_collections(*)')
+    .select('*')
     .single()
 
   if (error) throw error
@@ -86,7 +86,7 @@ export async function updateReference(
     .from('saved_references')
     .update(input)
     .eq('id', id)
-    .select('*, collection:reference_collections(*)')
+    .select('*')
     .single()
 
   if (error) throw error

@@ -31,7 +31,7 @@ function ScoreSlider({ label, value, onChange, color }: {
         className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
         style={{ accentColor: color }}
       />
-      <div className="flex justify-between text-[10px] text-[#9ca3af] mt-0.5">
+      <div className="flex justify-between text-[15px] text-[#9ca3af] mt-0.5">
         <span>0</span>
         <span>100</span>
       </div>

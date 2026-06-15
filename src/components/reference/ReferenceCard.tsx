@@ -20,7 +20,7 @@ function ScoreDot({ value, color }: { value: number; color: string }) {
   return (
     <div className="flex items-center gap-1">
       <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-      <span className="text-[11px] text-[#4D7F95]">{value}</span>
+      <span className="text-[17px] text-[#4D7F95]">{value}</span>
     </div>
   )
 }
@@ -78,13 +78,13 @@ export function ReferenceCard({ reference: ref }: ReferenceCardProps) {
       <div className="px-3.5 py-3">
         {/* 배지 */}
         <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-          <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#f3f4f6] text-[#4D7F95]">
+          <span className="px-1.5 py-0.5 rounded text-[15px] bg-[#f3f4f6] text-[#4D7F95]">
             {PLATFORM_LABELS[ref.platform]}
           </span>
-          <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#f3f4f6] text-[#4D7F95]">
+          <span className="px-1.5 py-0.5 rounded text-[15px] bg-[#f3f4f6] text-[#4D7F95]">
             {FORMAT_LABELS[ref.content_format]}
           </span>
-          <span className={cn('px-1.5 py-0.5 rounded text-[10px]', STATUS_STYLES[ref.status])}>
+          <span className={cn('px-1.5 py-0.5 rounded text-[15px]', STATUS_STYLES[ref.status])}>
             {ref.status}
           </span>
         </div>
@@ -98,12 +98,12 @@ export function ReferenceCard({ reference: ref }: ReferenceCardProps) {
         {ref.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2.5">
             {ref.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="px-1.5 py-0.5 rounded-full text-[10px] bg-[#e6f7fa] text-[#00899e]">
+              <span key={tag} className="px-1.5 py-0.5 rounded-full text-[15px] bg-[#e6f7fa] text-[#00899e]">
                 {tag}
               </span>
             ))}
             {ref.tags.length > 3 && (
-              <span className="text-[10px] text-[#9ca3af]">+{ref.tags.length - 3}</span>
+              <span className="text-[15px] text-[#9ca3af]">+{ref.tags.length - 3}</span>
             )}
           </div>
         )}

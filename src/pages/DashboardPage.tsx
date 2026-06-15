@@ -69,7 +69,7 @@ export function DashboardPage() {
             <div key={day} className="text-center">
               <p className="text-xs text-[#9ca3af] mb-2">{day}</p>
               <div className="h-16 rounded-lg border-2 border-dashed border-[#e5e7eb] flex items-center justify-center">
-                <span className="text-[11px] text-[#9ca3af]">비어있음</span>
+                <span className="text-[17px] text-[#9ca3af]">비어있음</span>
               </div>
             </div>
           ))}

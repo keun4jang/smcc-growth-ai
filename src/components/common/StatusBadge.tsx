@@ -34,7 +34,7 @@ export function StatusBadge({ status, size = 'sm' }: StatusBadgeProps) {
     <span
       className={cn(
         'inline-flex items-center rounded-full font-medium',
-        size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs',
+        size === 'sm' ? 'px-2 py-0.5 text-[17px]' : 'px-2.5 py-1 text-sm',
         STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-600'
       )}
     >
