@@ -33,16 +33,9 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 w-60 flex flex-col border-r border-[#e5e7eb] bg-white z-10">
       {/* 로고 */}
-      <div className="px-5 py-5 border-b border-[#e5e7eb]">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#00b1cd] flex items-center justify-center">
-            <Sparkles size={14} className="text-white" />
-          </div>
-          <div>
-            <p className="text-[20px] font-700 text-[#0B3558] leading-tight">SMCC</p>
-            <p className="text-[17px] text-[#4D7F95] leading-tight">Growth Coach</p>
-          </div>
-        </div>
+      <div className="px-5 py-4 border-b border-[#e5e7eb]">
+        <img src="/smcc-logo.svg" alt="SMCC" className="h-8 w-auto" />
+        <p className="text-[14px] text-[#4D7F95] mt-1 leading-tight">Growth Coach</p>
       </div>
 
       {/* 네비게이션 */}

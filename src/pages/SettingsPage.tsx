@@ -43,7 +43,7 @@ export function SettingsPage() {
 
     setLoading(false)
     if (error) {
-      setError('저장 중 오류가 발생했어요.')
+      setError(`저장 중 오류가 발생했어요. (${error.message})`)
     } else {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)

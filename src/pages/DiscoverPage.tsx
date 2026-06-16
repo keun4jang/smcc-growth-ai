@@ -9,23 +9,39 @@ import type { PexelsPhoto } from '@/lib/pexels'
 import { cn } from '@/lib/utils'
 
 const PROGRAM_CATEGORIES = [
-  { label: 'Daily Coffee Chat', key: 'daily_coffee_chat', query: '카페 브이로그 아침 대화 일상 쇼츠', emoji: '☕' },
-  { label: 'Morning Rave', key: 'morning_rave', query: '아침 에너지 댄스 모닝 루틴 쇼츠', emoji: '🌅' },
-  { label: 'Book Dive', key: 'book_dive', query: '독서 브이로그 책 추천 쇼츠', emoji: '📚' },
-  { label: 'Wellness Class', key: 'wellness_class', query: '웰니스 운동 스트레칭 건강 쇼츠', emoji: '🧘' },
-  { label: 'Sunrise Meetup', key: 'sunrise_meetup', query: '일출 아침 산책 모닝 쇼츠', emoji: '🌄' },
-  { label: 'SMCC Talk', key: 'smcc_talk', query: '커뮤니티 토크 대화 인터뷰 쇼츠', emoji: '🎙️' },
-  { label: 'Espresso Run', key: 'espresso_run', query: '러닝 조깅 아침 운동 쇼츠', emoji: '🏃' },
-  { label: 'Travel Trip', key: 'travel_trip', query: '여행 브이로그 감성 쇼츠', emoji: '✈️' },
+  { label: 'Coffee Chat', key: 'daily_coffee_chat', query: 'morning coffee strangers meetup community ritual shorts', emoji: '☕' },
+  { label: 'Espresso Run', key: 'espresso_run', query: 'run club coffee morning espresso runners community shorts', emoji: '🏃' },
+  { label: 'Book Dive', key: 'book_dive', query: 'silent book club morning reading community aesthetic shorts', emoji: '📚' },
+  { label: 'Morning Rave', key: 'morning_rave', query: 'daybreaker morning rave sober dance party sunrise energy shorts', emoji: '🌟' },
+  { label: 'SMCC Talk', key: 'smcc_talk', query: 'conversation salon strangers talk morning community event shorts', emoji: '🎙️' },
+  { label: 'SMCC Cinema', key: 'smcc_cinema', query: 'morning cinema breakfast film screening club community shorts', emoji: '🎬' },
+  { label: 'Breakfast', key: 'breakfast', query: 'breakfast strangers morning club community brunch gathering shorts', emoji: '🍳' },
+  { label: 'Sunrise Meetup', key: 'sunrise_meetup', query: 'sunrise meetup dawn outdoor morning community gathering shorts', emoji: '🌄' },
+  { label: 'Travel Trip', key: 'travel_trip', query: 'community group wellness travel trip strangers together shorts', emoji: '✈️' },
+  { label: 'Wellness Class', key: 'wellness_class', query: 'morning yoga sunrise breathwork stretch wellness community shorts', emoji: '🧘' },
+  { label: 'Global Meetup', key: 'global_meetup', query: 'foreigners Seoul meetup international coffee language exchange shorts', emoji: '🌍' },
+  { label: 'Brand Collab', key: 'brand_collaboration', query: 'brand wellness activation experiential marketing community event shorts', emoji: '🤝' },
+  { label: 'Community', key: 'community_event', query: 'community celebration homecoming morning party gathering shorts', emoji: '🎉' },
+  { label: 'Corp Wellness', key: 'corporate_wellness', query: 'workplace morning wellness employee routine corporate community shorts', emoji: '🏢' },
+  { label: 'Wellness Life', key: 'other', query: 'sober lifestyle morning culture third place wellness community shorts', emoji: '🌿' },
 ]
 
 const IMAGE_CATEGORIES = [
-  { label: 'Daily Coffee Chat', key: 'daily_coffee_chat', query: 'coffee morning cafe lifestyle', emoji: '☕' },
-  { label: 'Morning Rave', key: 'morning_rave', query: 'morning energy sunrise lifestyle', emoji: '🌅' },
-  { label: 'Book Dive', key: 'book_dive', query: 'book reading minimal aesthetic', emoji: '📚' },
-  { label: 'Wellness Class', key: 'wellness_class', query: 'wellness yoga fitness lifestyle', emoji: '🧘' },
-  { label: 'Sunrise Meetup', key: 'sunrise_meetup', query: 'sunrise outdoor morning people', emoji: '🌄' },
-  { label: 'SMCC Talk', key: 'smcc_talk', query: 'community people conversation lifestyle', emoji: '🎙️' },
+  { label: 'Coffee Chat', key: 'daily_coffee_chat', query: 'morning coffee strangers community cafe people', emoji: '☕' },
+  { label: 'Espresso Run', key: 'espresso_run', query: 'morning run coffee club runners outdoor', emoji: '🏃' },
+  { label: 'Book Dive', key: 'book_dive', query: 'book reading minimal aesthetic morning light', emoji: '📚' },
+  { label: 'Morning Rave', key: 'morning_rave', query: 'morning dance party energy crowd sunrise festival', emoji: '🌟' },
+  { label: 'SMCC Talk', key: 'smcc_talk', query: 'conversation people group discussion community table', emoji: '🎙️' },
+  { label: 'SMCC Cinema', key: 'smcc_cinema', query: 'outdoor cinema morning film screening people', emoji: '🎬' },
+  { label: 'Breakfast', key: 'breakfast', query: 'breakfast table morning food people community brunch', emoji: '🍳' },
+  { label: 'Sunrise Meetup', key: 'sunrise_meetup', query: 'sunrise outdoor morning people dawn gathering', emoji: '🌄' },
+  { label: 'Travel Trip', key: 'travel_trip', query: 'group travel community adventure strangers journey', emoji: '✈️' },
+  { label: 'Wellness Class', key: 'wellness_class', query: 'yoga morning wellness outdoor breathwork stretch', emoji: '🧘' },
+  { label: 'Global Meetup', key: 'global_meetup', query: 'international people diversity community meeting city', emoji: '🌍' },
+  { label: 'Brand Collab', key: 'brand_collaboration', query: 'brand event experiential marketing lifestyle community', emoji: '🤝' },
+  { label: 'Community', key: 'community_event', query: 'community party celebration people gathering outdoor', emoji: '🎉' },
+  { label: 'Corp Wellness', key: 'corporate_wellness', query: 'workplace wellness morning office community employee', emoji: '🏢' },
+  { label: 'Wellness Life', key: 'other', query: 'sober lifestyle morning wellness minimal aesthetic city', emoji: '🌿' },
 ]
 
 function parseDuration(iso: string): number {
