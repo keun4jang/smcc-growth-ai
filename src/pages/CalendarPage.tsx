@@ -69,7 +69,7 @@ export function CalendarPage() {
               </div>
               <div className="bg-white rounded-xl border-2 border-dashed border-[#e5e7eb] h-36 flex flex-col items-center justify-center gap-1 hover:border-[#9FC6C8] transition-colors group cursor-pointer">
                 <Plus size={14} className="text-[#9ca3af] group-hover:text-[#00b1cd] transition-colors" />
-                <span className="text-[10px] text-[#9ca3af] group-hover:text-[#00b1cd] transition-colors">추가</span>
+                <span className="text-[15px] text-[#9ca3af] group-hover:text-[#00b1cd] transition-colors">추가</span>
               </div>
             </div>
           )

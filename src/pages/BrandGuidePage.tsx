@@ -52,9 +52,9 @@ export function BrandGuidePage() {
                 className="w-12 h-12 rounded-xl shadow-sm border border-black/5"
                 style={{ backgroundColor: hex }}
               />
-              <p className="text-[10px] text-[#0B3558] font-medium text-center">{name}</p>
-              <p className="text-[9px] text-[#9ca3af] text-center">{hex}</p>
-              <p className="text-[9px] text-[#4D7F95] text-center">{label}</p>
+              <p className="text-[15px] text-[#0B3558] font-medium text-center">{name}</p>
+              <p className="text-[14px] text-[#9ca3af] text-center">{hex}</p>
+              <p className="text-[14px] text-[#4D7F95] text-center">{label}</p>
             </div>
           ))}
         </div>
