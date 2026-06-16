@@ -641,7 +641,7 @@ export function DiscoverPage() {
   const [, setCurrentSearchQuery] = useState<string>('')
   const [viewMode, setViewMode] = useState<ViewMode>('recommended')
   const [includeRejected, setIncludeRejected] = useState(false)
-  const [autoResultsOpen, setAutoResultsOpen] = useState(false)
+  const [autoResultsOpen, setAutoResultsOpen] = useState(true)
 
   const currentCat = PROGRAM_CATEGORIES[activeCat]
 
