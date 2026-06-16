@@ -36,7 +36,7 @@ export function Sidebar() {
     <aside className="fixed inset-y-0 left-0 w-60 flex flex-col border-r border-[#e5e7eb] bg-white z-10">
       {/* 로고 */}
       <div className="px-5 py-4 border-b border-[#e5e7eb]">
-        <img src="/smcc-logo.svg" alt="SMCC" className="h-8 w-auto" />
+        <img src="/smcc-logo.png" alt="SMCC" className="h-8 w-auto" />
         <p className="text-[14px] text-[#4D7F95] mt-1 leading-tight">Growth Coach</p>
       </div>
 
