@@ -141,6 +141,10 @@ export interface CreateReferenceInput {
   brand_fit_score?: number
   cringe_risk_score?: number
   growth_potential_score?: number
+  memo?: string | null
+  why_saved?: string | null
+  good_points?: string | null
+  smcc_apply?: string | null
 }
 
 export interface UpdateReferenceInput {

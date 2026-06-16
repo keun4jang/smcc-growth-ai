@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Loader2, BookmarkPlus, Check, RefreshCw, X, ExternalLink } from 'lucide-react'
+import { Loader2, BookmarkPlus, Check, RefreshCw, X, ExternalLink, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { useCreateReference } from '@/hooks/useReferences'
 import { searchYouTube } from '@/lib/youtube'
@@ -7,6 +7,7 @@ import { searchPexelsByProgram } from '@/lib/pexels'
 import {
   PROGRAM_CONFIGS,
   PROGRAM_LABEL_KO,
+  PROGRAM_GUIDES,
   calcProgramFitScore,
   calcSmccMoodScore,
   calcContentStructureScore,
@@ -25,7 +26,15 @@ import {
 import type { ResultStatus } from '@/lib/smccScoring'
 import type { YouTubeVideo } from '@/lib/youtube'
 import type { PexelsPhoto } from '@/lib/pexels'
+import {
+  PLATFORM_LABELS,
+  FORMAT_LABELS,
+  PLATFORM_FORMATS,
+  type PlatformType,
+  type ContentFormatType,
+} from '@/types'
 import { cn } from '@/lib/utils'
+import { useNavigate } from 'react-router-dom'
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -124,16 +133,21 @@ function CringeTag({ score }: { score: number }) {
 
 // ─── ExternalSearch ───────────────────────────────────────────────
 
-function ExternalSearch({ query }: { query: string }) {
+function buildExternalLinks(query: string) {
   const enc = encodeURIComponent(query)
-  const links = [
+  return [
     { label: 'YouTube에서 검색', href: `https://www.youtube.com/results?search_query=${enc}` },
-    { label: 'TikTok에서 검색',  href: `https://www.tiktok.com/search?q=${enc}` },
+    { label: 'TikTok에서 검색', href: `https://www.tiktok.com/search?q=${enc}` },
+    { label: 'Instagram Reels 검색', href: `https://www.google.com/search?q=site%3Ainstagram.com%2Freel+${enc}` },
     { label: 'Pinterest에서 검색', href: `https://www.pinterest.com/search/pins/?q=${enc}` },
-    { label: 'Instagram 검색', href: `https://www.google.com/search?q=site:instagram.com/reel/ ${enc}` },
+    { label: 'Google에서 검색', href: `https://www.google.com/search?q=${enc}` },
   ]
+}
+
+function ExternalSearch({ query }: { query: string }) {
+  const links = buildExternalLinks(query)
   return (
-    <div className="flex flex-wrap gap-2 mb-5">
+    <div className="flex flex-wrap gap-2">
       {links.map((l) => (
         <a
           key={l.label}
@@ -150,7 +164,7 @@ function ExternalSearch({ query }: { query: string }) {
   )
 }
 
-// ─── SearchChips ──────────────────────────────────────────────────
+// ─── SearchChips (with per-chip external search) ───────────────────
 
 function SearchChips({
   programKey,
@@ -164,32 +178,266 @@ function SearchChips({
   const config = PROGRAM_CONFIGS[programKey]
   if (!config) return null
   return (
-    <div className="flex flex-wrap gap-2 mb-4">
-      <button
-        onClick={() => onChipClick(null)}
-        className={cn(
-          'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
-          activeChip === null
-            ? 'bg-[#00b1cd] text-white border-[#00b1cd]'
-            : 'bg-white border-[#e5e7eb] text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd]'
-        )}
-      >
-        전체
-      </button>
-      {config.searchChips.map((chip) => (
+    <div className="space-y-2.5">
+      <div className="flex flex-wrap gap-2">
         <button
-          key={chip.query}
-          onClick={() => onChipClick(chip.query)}
+          onClick={() => onChipClick(null)}
           className={cn(
             'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
-            activeChip === chip.query
+            activeChip === null
               ? 'bg-[#00b1cd] text-white border-[#00b1cd]'
               : 'bg-white border-[#e5e7eb] text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd]'
           )}
         >
-          {chip.label}
+          전체
         </button>
-      ))}
+        {config.searchChips.map((chip) => (
+          <button
+            key={chip.query}
+            onClick={() => onChipClick(chip.query)}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+              activeChip === chip.query
+                ? 'bg-[#00b1cd] text-white border-[#00b1cd]'
+                : 'bg-white border-[#e5e7eb] text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd]'
+            )}
+          >
+            {chip.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Program Guide Panel ────────────────────────────────────────────
+
+function ProgramGuidePanel({ programKey }: { programKey: string }) {
+  const guide = PROGRAM_GUIDES[programKey] ?? PROGRAM_GUIDES['other']
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+      <div className="rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-4">
+        <p className="text-xs font-semibold text-[#166534] mb-2">✅ 찾아야 할 레퍼런스</p>
+        <ul className="space-y-1">
+          {guide.goodReferences.map((g) => (
+            <li key={g} className="text-xs text-[#166534] leading-relaxed">· {g}</li>
+          ))}
+        </ul>
+      </div>
+      <div className="rounded-xl border border-[#fecaca] bg-[#fef2f2] p-4">
+        <p className="text-xs font-semibold text-[#991B1B] mb-2">🚫 피해야 할 레퍼런스</p>
+        <ul className="space-y-1">
+          {guide.badReferences.map((b) => (
+            <li key={b} className="text-xs text-[#991B1B] leading-relaxed">· {b}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+// ─── Quick Save Form ─────────────────────────────────────────────
+
+const INPUT_CLASS = cn(
+  'w-full px-3.5 py-2.5 rounded-lg border border-[#e5e7eb] bg-white',
+  'text-sm text-[#0B3558] placeholder-[#9ca3af]',
+  'outline-none focus:border-[#00b1cd] focus:ring-2 focus:ring-[#e6f7fa] transition-colors'
+)
+
+const PLATFORMS = Object.keys(PLATFORM_LABELS) as PlatformType[]
+
+function QuickSaveForm({ programKey, onSaved }: { programKey: string; onSaved: (id: string) => void }) {
+  const createReference = useCreateReference()
+  const guide = PROGRAM_GUIDES[programKey] ?? PROGRAM_GUIDES['other']
+
+  const [url, setUrl] = useState('')
+  const [title, setTitle] = useState('')
+  const [expanded, setExpanded] = useState(false)
+  const [platform, setPlatform] = useState<PlatformType>('instagram')
+  const [contentFormat, setContentFormat] = useState<ContentFormatType>('reels')
+  const [tagInput, setTagInput] = useState('')
+  const [memo, setMemo] = useState('')
+  const [whySaved, setWhySaved] = useState('')
+  const [goodPoints, setGoodPoints] = useState('')
+  const [smccApply, setSmccApply] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [savedState, setSavedState] = useState<{ id: string } | null>(null)
+
+  const availableFormats = PLATFORM_FORMATS[platform]
+
+  const handlePlatformChange = (p: PlatformType) => {
+    setPlatform(p)
+    setContentFormat(PLATFORM_FORMATS[p][0])
+  }
+
+  const resetForm = () => {
+    setUrl('')
+    setTitle('')
+    setTagInput('')
+    setMemo('')
+    setWhySaved('')
+    setGoodPoints('')
+    setSmccApply('')
+    setSavedState(null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    if (!url.trim() || !title.trim()) {
+      setError('URL과 제목은 꼭 입력해주세요.')
+      return
+    }
+
+    const tags = tagInput.trim()
+      ? tagInput.split(',').map((t) => t.trim()).filter(Boolean)
+      : guide.recommendedTags.slice(0, 5)
+
+    try {
+      const saved = await createReference.mutateAsync({
+        url: url.trim(),
+        title: title.trim(),
+        platform,
+        content_format: contentFormat,
+        program_type: programKey as any,
+        tags,
+        memo: memo.trim() || null,
+        why_saved: whySaved.trim() || null,
+        good_points: goodPoints.trim() || null,
+        smcc_apply: smccApply.trim() || null,
+        brand_fit_score: 70,
+        cringe_risk_score: 20,
+        growth_potential_score: 60,
+      })
+      setSavedState({ id: saved.id })
+      onSaved(saved.id)
+    } catch {
+      setError('저장 중 오류가 발생했어요. 다시 시도해주세요.')
+    }
+  }
+
+  if (savedState) {
+    return (
+      <SavedToast
+        referenceId={savedState.id}
+        onContinue={resetForm}
+      />
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="레퍼런스 URL (Instagram/TikTok/Pinterest 등)"
+          className={INPUT_CLASS}
+        />
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="제목 (한 줄 요약)"
+          className={INPUT_CLASS}
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-1 text-xs text-[#00b1cd] font-medium hover:underline"
+      >
+        {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        {expanded ? '간단히 접기' : '플랫폼·태그·메모 추가 입력'}
+      </button>
+
+      {expanded && (
+        <div className="space-y-3 pt-1">
+          <div className="grid grid-cols-2 gap-3">
+            <select value={platform} onChange={(e) => handlePlatformChange(e.target.value as PlatformType)} className={INPUT_CLASS}>
+              {PLATFORMS.map((p) => <option key={p} value={p}>{PLATFORM_LABELS[p]}</option>)}
+            </select>
+            <select value={contentFormat} onChange={(e) => setContentFormat(e.target.value as ContentFormatType)} className={INPUT_CLASS}>
+              {availableFormats.map((f) => <option key={f} value={f}>{FORMAT_LABELS[f]}</option>)}
+            </select>
+          </div>
+          <input
+            type="text"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            placeholder={`태그 (쉼표로 구분, 비워두면 추천 태그 자동 적용: ${guide.recommendedTags.slice(0, 3).join(', ')})`}
+            className={INPUT_CLASS}
+          />
+          <textarea
+            value={whySaved}
+            onChange={(e) => setWhySaved(e.target.value)}
+            placeholder="왜 저장했나요?"
+            rows={2}
+            className={INPUT_CLASS}
+          />
+          <textarea
+            value={goodPoints}
+            onChange={(e) => setGoodPoints(e.target.value)}
+            placeholder="좋은 포인트는 무엇인가요?"
+            rows={2}
+            className={INPUT_CLASS}
+          />
+          <textarea
+            value={smccApply}
+            onChange={(e) => setSmccApply(e.target.value)}
+            placeholder="SMCC에 어떻게 적용할 수 있을까요?"
+            rows={2}
+            className={INPUT_CLASS}
+          />
+          <textarea
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            placeholder="기타 메모"
+            rows={2}
+            className={INPUT_CLASS}
+          />
+        </div>
+      )}
+
+      {error && <p className="text-sm text-[#F43F55]">{error}</p>}
+
+      <button
+        type="submit"
+        disabled={createReference.isPending}
+        className="flex items-center gap-1.5 px-4 py-2 bg-[#00b1cd] text-white text-sm font-medium rounded-lg hover:bg-[#008fa6] disabled:opacity-60 transition-colors"
+      >
+        <BookmarkPlus size={15} />
+        {createReference.isPending ? '저장 중...' : '레퍼런스로 저장'}
+      </button>
+    </form>
+  )
+}
+
+function SavedToast({ referenceId, onContinue }: { referenceId: string; onContinue: () => void }) {
+  const navigate = useNavigate()
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl bg-[#e6f7fa] border border-[#9FC6C8]">
+      <div className="flex items-center gap-2">
+        <Check size={16} className="text-[#00899e]" />
+        <p className="text-sm text-[#00899e] font-medium">레퍼런스에 저장됐어요</p>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => navigate(`/references/${referenceId}`)}
+          className="px-3 py-1.5 rounded-lg bg-white border border-[#9FC6C8] text-xs font-medium text-[#00899e] hover:bg-[#f0fdfd]"
+        >
+          상세 보기
+        </button>
+        <button
+          onClick={onContinue}
+          className="px-3 py-1.5 rounded-lg bg-[#00b1cd] text-xs font-medium text-white hover:bg-[#008fa6]"
+        >
+          계속 찾기
+        </button>
+      </div>
     </div>
   )
 }
@@ -279,7 +527,7 @@ function VideoModal({ video, onClose, onPrev, onNext, hasPrev, hasNext, onSave, 
               className={cn('flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
                 saved ? 'bg-[#00899e] text-white cursor-default' : 'bg-[#00b1cd] text-white hover:bg-[#008fa6]')}>
               {saved ? <Check size={13} /> : <BookmarkPlus size={13} />}
-              {saved ? '저장됨' : '저장하기'}
+              {saved ? '저장됨' : '레퍼런스로 저장'}
             </button>
           </div>
         </div>
@@ -290,8 +538,8 @@ function VideoModal({ video, onClose, onPrev, onNext, hasPrev, hasNext, onSave, 
 
 // ─── VideoCard ────────────────────────────────────────────────────
 
-function VideoCard({ video, onSave, saved, onPlay }: {
-  video: EnrichedVideo; onSave: () => void; saved: boolean; onPlay: () => void
+function VideoCard({ video, onSave, onSaveAsMood, saved, onPlay }: {
+  video: EnrichedVideo; onSave: () => void; onSaveAsMood: () => void; saved: boolean; onPlay: () => void
 }) {
   return (
     <div className="bg-white rounded-xl border border-[#e5e7eb] overflow-hidden hover:border-[#9FC6C8] hover:shadow-md transition-all flex flex-col">
@@ -332,12 +580,18 @@ function VideoCard({ video, onSave, saved, onPlay }: {
           )}
         </div>
 
-        <button onClick={onSave} disabled={saved}
-          className={cn('mt-auto w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
-            saved ? 'bg-[#e6f7fa] text-[#00899e] cursor-default' : 'bg-[#00b1cd] text-white hover:bg-[#008fa6]')}>
-          {saved ? <Check size={14} /> : <BookmarkPlus size={14} />}
-          {saved ? '저장됨' : '저장하기'}
-        </button>
+        <div className="mt-auto grid grid-cols-2 gap-1.5">
+          <button onClick={onSave} disabled={saved}
+            className={cn('flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-medium transition-colors',
+              saved ? 'bg-[#e6f7fa] text-[#00899e] cursor-default' : 'bg-[#00b1cd] text-white hover:bg-[#008fa6]')}>
+            {saved ? <Check size={13} /> : <BookmarkPlus size={13} />}
+            {saved ? '저장됨' : '레퍼런스로 저장'}
+          </button>
+          <button onClick={onSaveAsMood} disabled={saved}
+            className="flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-medium border border-[#e5e7eb] text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd] disabled:opacity-50 transition-colors">
+            무드 참고로 저장
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -363,7 +617,7 @@ function ImageCard({ photo, onSave, saved }: { photo: PexelsPhoto; onSave: () =>
           className={cn('mt-auto w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
             saved ? 'bg-[#e6f7fa] text-[#00899e] cursor-default' : 'bg-[#00b1cd] text-white hover:bg-[#008fa6]')}>
           {saved ? <Check size={14} /> : <BookmarkPlus size={14} />}
-          {saved ? '저장됨' : '저장하기'}
+          {saved ? '저장됨' : '무드 참고로 저장'}
         </button>
       </div>
     </div>
@@ -384,9 +638,10 @@ export function DiscoverPage() {
   const [savedPhotoIds, setSavedPhotoIds] = useState<Set<number>>(new Set())
   const [playingVideo, setPlayingVideo] = useState<EnrichedVideo | null>(null)
   const [playingIndex, setPlayingIndex] = useState<number>(-1)
-  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>('')
+  const [, setCurrentSearchQuery] = useState<string>('')
   const [viewMode, setViewMode] = useState<ViewMode>('recommended')
   const [includeRejected, setIncludeRejected] = useState(false)
+  const [autoResultsOpen, setAutoResultsOpen] = useState(false)
 
   const currentCat = PROGRAM_CATEGORIES[activeCat]
 
@@ -458,10 +713,11 @@ export function DiscoverPage() {
   }
 
   useEffect(() => {
+    if (!autoResultsOpen) return
     if (mode === 'video') fetchVideos(activeCat, activeChip)
     else fetchImages(activeCat)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, activeCat, activeChip])
+  }, [mode, activeCat, activeChip, autoResultsOpen])
 
   const handleChipClick = (query: string | null) => {
     setActiveChip(query)
@@ -488,6 +744,18 @@ export function DiscoverPage() {
     setSavedVideoIds((prev) => new Set(prev).add(video.id))
   }
 
+  const handleSaveVideoAsMood = async (video: EnrichedVideo) => {
+    await createReference.mutateAsync({
+      url: `https://www.youtube.com/watch?v=${video.id}`,
+      title: video.title,
+      platform: 'youtube',
+      content_format: 'video',
+      thumbnail_url: video.thumbnail,
+      tags: ['visual_mood_reference'],
+    })
+    setSavedVideoIds((prev) => new Set(prev).add(video.id))
+  }
+
   const handleSavePhoto = async (photo: PexelsPhoto) => {
     await createReference.mutateAsync({
       url: photo.url,
@@ -502,53 +770,15 @@ export function DiscoverPage() {
 
   return (
     <div className="p-8">
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-2">
         <PageHeader
           title="Discover"
-          description="SMCC 프로그램별 트렌딩 콘텐츠를 AI가 자동으로 찾아드려요."
+          description="SMCC에 맞는 레퍼런스를 직접 찾고 저장하세요."
         />
-        <button
-          onClick={() => mode === 'video' ? fetchVideos(activeCat, activeChip) : fetchImages(activeCat)}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e5e7eb] text-sm text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd] transition-colors disabled:opacity-40 mt-1"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          새로고침
-        </button>
       </div>
-
-      {/* 점수 범례 */}
-      {mode === 'video' && (
-        <div className="flex flex-wrap items-center gap-4 mb-5 px-4 py-3 bg-[#f9fafb] rounded-xl border border-[#e5e7eb]">
-          <span className="text-xs text-[#4D7F95] font-medium">점수 기준</span>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-[#00b1cd]" />
-            <span className="text-xs text-[#4D7F95]">프로그램 적합도 — 높을수록 프로그램 유형에 맞아요</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-[#7C3AED]" />
-            <span className="text-xs text-[#4D7F95]">SMCC 무드 — 아침 커뮤니티 감성 일치도</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-[#F43F55]" />
-            <span className="text-xs text-[#4D7F95]">자극 위험도 — 낮을수록 안전해요</span>
-          </div>
-        </div>
-      )}
-
-      {/* 모드 전환 */}
-      <div className="flex rounded-xl bg-[#f3f4f6] p-1 mb-5 w-fit">
-        {(['video', 'image'] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => { setMode(m); setActiveCat(0); setActiveChip(null) }}
-            className={cn('px-5 py-2 rounded-lg text-sm font-medium transition-colors',
-              mode === m ? 'bg-white text-[#0B3558] shadow-sm' : 'text-[#4D7F95] hover:text-[#0B3558]')}
-          >
-            {m === 'video' ? '🎬 쇼츠' : '🖼️ 이미지'}
-          </button>
-        ))}
-      </div>
+      <p className="text-xs text-[#9ca3af] mb-6">
+        자동 결과는 참고용입니다. 좋은 레퍼런스는 직접 고르고, 앱은 정리와 판단을 도와줍니다. Instagram/TikTok/Pinterest에서 찾은 링크를 붙여넣어 저장할 수 있어요.
+      </p>
 
       {/* 카테고리 탭 */}
       <div className="flex gap-2 mb-4 flex-wrap">
@@ -566,113 +796,178 @@ export function DiscoverPage() {
         ))}
       </div>
 
-      {/* Search Chips (video mode only) */}
-      {mode === 'video' && (
-        <SearchChips
-          programKey={currentCat.key}
-          activeChip={activeChip}
-          onChipClick={handleChipClick}
-        />
-      )}
+      {/* 프로그램 설명 */}
+      <p className="text-sm text-[#4D7F95] mb-4">
+        {PROGRAM_GUIDES[currentCat.key]?.description}
+      </p>
 
-      {/* View Mode + Rejected 토글 (video mode only) */}
-      {mode === 'video' && (
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <div className="flex rounded-lg bg-[#f3f4f6] p-1">
-            {(['recommended', 'broad', 'strict'] as ViewMode[]).map((vm) => (
-              <button
-                key={vm}
-                onClick={() => setViewMode(vm)}
-                className={cn('px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
-                  viewMode === vm ? 'bg-white text-[#0B3558] shadow-sm' : 'text-[#4D7F95] hover:text-[#0B3558]')}
-              >
-                {VIEW_MODE_LABELS[vm]}
-              </button>
-            ))}
-          </div>
-          <label className="flex items-center gap-1.5 text-xs text-[#4D7F95] cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeRejected}
-              onChange={(e) => setIncludeRejected(e.target.checked)}
-              className="rounded border-[#e5e7eb] text-[#00b1cd] focus:ring-[#00b1cd]"
-            />
-            Rejected 포함
-          </label>
+      {/* 찾아야 할 / 피해야 할 레퍼런스 */}
+      <ProgramGuidePanel programKey={currentCat.key} />
+
+      {/* 검색어 Chip + 외부 검색 */}
+      <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 mb-5 space-y-4">
+        <div>
+          <p className="text-xs font-semibold text-[#0B3558] mb-2">검색어로 빠르게 찾기</p>
+          <SearchChips
+            programKey={currentCat.key}
+            activeChip={activeChip}
+            onChipClick={handleChipClick}
+          />
         </div>
-      )}
-
-      {/* External Search Links */}
-      <ExternalSearch query={currentSearchQuery} />
-
-      {/* Pexels notice (image mode) */}
-      {mode === 'image' && (
-        <div className="mb-5 px-4 py-3 bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl">
-          <p className="text-xs text-[#166534]">
-            🖼️ 이미지는 비주얼 무드 참고용이에요. 저장 시 'visual_mood_reference' 태그가 자동 추가됩니다.
-          </p>
+        <div>
+          <p className="text-xs font-semibold text-[#0B3558] mb-2">외부에서 검색하기</p>
+          <ExternalSearch query={activeChip ?? PROGRAM_CONFIGS[currentCat.key]?.searchQueries[0] ?? currentCat.label} />
         </div>
-      )}
+      </div>
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <Loader2 size={32} className="animate-spin text-[#00b1cd]" />
-          <p className="text-sm text-[#4D7F95]">
-            {mode === 'video'
-              ? `${PROGRAM_LABEL_KO[currentCat.key] ?? currentCat.label} 관련 콘텐츠를 SMCC 기준으로 분석 중...`
-              : '이미지 레퍼런스 불러오는 중...'}
-          </p>
+      {/* 직접 URL 저장 */}
+      <div className="rounded-xl border-2 border-[#00b1cd]/30 bg-[#e6f7fa]/40 p-5 mb-6">
+        <div className="flex items-center gap-1.5 mb-3">
+          <Sparkles size={15} className="text-[#00b1cd]" />
+          <p className="text-sm font-semibold text-[#0B3558]">직접 찾은 레퍼런스 저장하기</p>
         </div>
-      )}
+        <QuickSaveForm programKey={currentCat.key} onSaved={() => {}} />
+      </div>
 
-      {/* Video grid */}
-      {!loading && mode === 'video' && displayVideos.length > 0 && (
-        <>
-          {isFallback && (
-            <p className="text-sm text-[#4D7F95] mb-4">
-              엄격한 기준에 딱 맞는 결과는 적지만, 아래 후보를 검토해볼 수 있어요.
+      {/* 보조 자동 검색 결과 */}
+      <div className="rounded-xl border border-[#e5e7eb] bg-white">
+        <button
+          onClick={() => setAutoResultsOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-5 py-4"
+        >
+          <div className="text-left">
+            <p className="text-sm font-semibold text-[#0B3558]">자동 후보 결과</p>
+            <p className="text-xs text-[#9ca3af] mt-0.5">
+              자동 검색 결과는 참고용입니다. 실제 저장할 레퍼런스는 Instagram/TikTok/Pinterest/웹에서 직접 찾는 것을 권장합니다.
             </p>
-          )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {displayVideos.map((v, idx) => (
-              <VideoCard
-                key={v.id}
-                video={v}
-                onPlay={() => { setPlayingVideo(v); setPlayingIndex(idx) }}
-                onSave={() => handleSaveVideo(v, currentCat.key)}
-                saved={savedVideoIds.has(v.id)}
-              />
-            ))}
           </div>
-        </>
-      )}
+          {autoResultsOpen ? <ChevronUp size={18} className="text-[#4D7F95]" /> : <ChevronDown size={18} className="text-[#4D7F95]" />}
+        </button>
 
-      {/* Image grid */}
-      {!loading && mode === 'image' && photos.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {photos.map((p) => (
-            <ImageCard key={p.id} photo={p} onSave={() => handleSavePhoto(p)} saved={savedPhotoIds.has(p.id)} />
-          ))}
-        </div>
-      )}
+        {autoResultsOpen && (
+          <div className="px-5 pb-5 border-t border-[#e5e7eb] pt-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex rounded-xl bg-[#f3f4f6] p-1 w-fit">
+                {(['video', 'image'] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => { setMode(m); setActiveChip(null) }}
+                    className={cn('px-5 py-2 rounded-lg text-sm font-medium transition-colors',
+                      mode === m ? 'bg-white text-[#0B3558] shadow-sm' : 'text-[#4D7F95] hover:text-[#0B3558]')}
+                  >
+                    {m === 'video' ? '🎬 쇼츠' : '🖼️ 이미지'}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => mode === 'video' ? fetchVideos(activeCat, activeChip) : fetchImages(activeCat)}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e5e7eb] text-sm text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd] transition-colors disabled:opacity-40"
+              >
+                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                새로고침
+              </button>
+            </div>
 
-      {/* Empty state (검색 자체에서 결과가 없을 때만) */}
-      {!loading && mode === 'video' && displayVideos.length === 0 && (
-        <div className="text-center py-20">
-          <p className="text-2xl mb-3">🔍</p>
-          <p className="text-sm text-[#4D7F95] whitespace-pre-line">
-            {`검색 결과가 없어요.\n검색어 Chip을 바꾸거나 외부 검색을 이용해보세요.`}
-          </p>
-        </div>
-      )}
+            {/* View Mode + Rejected 토글 (video mode only) */}
+            {mode === 'video' && (
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <div className="flex rounded-lg bg-[#f3f4f6] p-1">
+                  {(['recommended', 'broad', 'strict'] as ViewMode[]).map((vm) => (
+                    <button
+                      key={vm}
+                      onClick={() => setViewMode(vm)}
+                      className={cn('px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+                        viewMode === vm ? 'bg-white text-[#0B3558] shadow-sm' : 'text-[#4D7F95] hover:text-[#0B3558]')}
+                    >
+                      {VIEW_MODE_LABELS[vm]}
+                    </button>
+                  ))}
+                </div>
+                <label className="flex items-center gap-1.5 text-xs text-[#4D7F95] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeRejected}
+                    onChange={(e) => setIncludeRejected(e.target.checked)}
+                    className="rounded border-[#e5e7eb] text-[#00b1cd] focus:ring-[#00b1cd]"
+                  />
+                  Rejected 포함
+                </label>
+              </div>
+            )}
 
-      {!loading && mode === 'image' && photos.length === 0 && (
-        <div className="text-center py-20">
-          <p className="text-2xl mb-3">😅</p>
-          <p className="text-sm text-[#4D7F95]">이미지를 불러오지 못했어요. 새로고침을 눌러주세요.</p>
-        </div>
-      )}
+            {/* Pexels notice (image mode) */}
+            {mode === 'image' && (
+              <div className="mb-5 px-4 py-3 bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl">
+                <p className="text-xs text-[#166534]">
+                  🖼️ 이미지는 비주얼 무드 참고용이에요. 저장 시 'visual_mood_reference' 태그가 자동 추가됩니다.
+                </p>
+              </div>
+            )}
+
+            {/* Loading */}
+            {loading && (
+              <div className="flex flex-col items-center justify-center py-24 gap-3">
+                <Loader2 size={32} className="animate-spin text-[#00b1cd]" />
+                <p className="text-sm text-[#4D7F95]">
+                  {mode === 'video'
+                    ? `${PROGRAM_LABEL_KO[currentCat.key] ?? currentCat.label} 관련 콘텐츠를 SMCC 기준으로 분석 중...`
+                    : '이미지 레퍼런스 불러오는 중...'}
+                </p>
+              </div>
+            )}
+
+            {/* Video grid */}
+            {!loading && mode === 'video' && displayVideos.length > 0 && (
+              <>
+                {isFallback && (
+                  <p className="text-sm text-[#4D7F95] mb-4">
+                    엄격한 기준에 딱 맞는 결과는 적지만, 아래 후보를 검토해볼 수 있어요.
+                  </p>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {displayVideos.map((v, idx) => (
+                    <VideoCard
+                      key={v.id}
+                      video={v}
+                      onPlay={() => { setPlayingVideo(v); setPlayingIndex(idx) }}
+                      onSave={() => handleSaveVideo(v, currentCat.key)}
+                      onSaveAsMood={() => handleSaveVideoAsMood(v)}
+                      saved={savedVideoIds.has(v.id)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Image grid */}
+            {!loading && mode === 'image' && photos.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {photos.map((p) => (
+                  <ImageCard key={p.id} photo={p} onSave={() => handleSavePhoto(p)} saved={savedPhotoIds.has(p.id)} />
+                ))}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!loading && mode === 'video' && displayVideos.length === 0 && (
+              <div className="text-center py-20">
+                <p className="text-2xl mb-3">🔍</p>
+                <p className="text-sm text-[#4D7F95] whitespace-pre-line">
+                  {`검색 결과가 없어요.\n검색어 Chip을 바꾸거나 외부 검색을 이용해보세요.`}
+                </p>
+              </div>
+            )}
+
+            {!loading && mode === 'image' && photos.length === 0 && (
+              <div className="text-center py-20">
+                <p className="text-2xl mb-3">😅</p>
+                <p className="text-sm text-[#4D7F95]">이미지를 불러오지 못했어요. 새로고침을 눌러주세요.</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Video Modal */}
       {playingVideo && (

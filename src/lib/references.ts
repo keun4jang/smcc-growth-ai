@@ -74,6 +74,10 @@ export async function createReference(
       brand_fit_score: input.brand_fit_score ?? 50,
       cringe_risk_score: input.cringe_risk_score ?? 50,
       growth_potential_score: input.growth_potential_score ?? 50,
+      memo: input.memo ?? null,
+      why_saved: input.why_saved ?? null,
+      good_points: input.good_points ?? null,
+      smcc_apply: input.smcc_apply ?? null,
     })
     .select('*')
     .single()
