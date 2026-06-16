@@ -1,48 +1,60 @@
 import { useState, useEffect } from 'react'
-import { Loader2, BookmarkPlus, Check, RefreshCw, X } from 'lucide-react'
+import { Loader2, BookmarkPlus, Check, RefreshCw, X, ExternalLink } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { useCreateReference } from '@/hooks/useReferences'
-import { searchYouTube, calcBrandFit, calcCringeRisk, calcGrowthPotential } from '@/lib/youtube'
-import { searchPexels } from '@/lib/pexels'
+import { searchYouTube } from '@/lib/youtube'
+import { searchPexelsByProgram } from '@/lib/pexels'
+import {
+  PROGRAM_CONFIGS,
+  PROGRAM_LABEL_KO,
+  calcProgramFitScore,
+  calcSmccMoodScore,
+  calcContentStructureScore,
+  calcGrowthPotentialNew,
+  calcCringeRiskNew,
+  calcFinalScore,
+  shouldFilter,
+  generateReasonTexts,
+} from '@/lib/smccScoring'
 import type { YouTubeVideo } from '@/lib/youtube'
 import type { PexelsPhoto } from '@/lib/pexels'
 import { cn } from '@/lib/utils'
 
+// ─── Types ────────────────────────────────────────────────────────
+
+interface EnrichedVideo extends YouTubeVideo {
+  programFitScore: number
+  smccMoodScore: number
+  contentStructureScore: number
+  growthPotentialScore: number
+  cringeRiskScore: number
+  finalScore: number
+  whyRecommended: string
+  smccApplyPoint: string
+  sourceQuery: string
+}
+
+// ─── Program Categories ───────────────────────────────────────────
+
 const PROGRAM_CATEGORIES = [
-  { label: 'Coffee Chat', key: 'daily_coffee_chat', query: 'morning coffee strangers meetup community ritual shorts', emoji: '☕' },
-  { label: 'Espresso Run', key: 'espresso_run', query: 'run club coffee morning espresso runners community shorts', emoji: '🏃' },
-  { label: 'Book Dive', key: 'book_dive', query: 'silent book club morning reading community aesthetic shorts', emoji: '📚' },
-  { label: 'Morning Rave', key: 'morning_rave', query: 'daybreaker morning rave sober dance party sunrise energy shorts', emoji: '🌟' },
-  { label: 'SMCC Talk', key: 'smcc_talk', query: 'conversation salon strangers talk morning community event shorts', emoji: '🎙️' },
-  { label: 'SMCC Cinema', key: 'smcc_cinema', query: 'morning cinema breakfast film screening club community shorts', emoji: '🎬' },
-  { label: 'Breakfast', key: 'breakfast', query: 'breakfast strangers morning club community brunch gathering shorts', emoji: '🍳' },
-  { label: 'Sunrise Meetup', key: 'sunrise_meetup', query: 'sunrise meetup dawn outdoor morning community gathering shorts', emoji: '🌄' },
-  { label: 'Travel Trip', key: 'travel_trip', query: 'community group wellness travel trip strangers together shorts', emoji: '✈️' },
-  { label: 'Wellness Class', key: 'wellness_class', query: 'morning yoga sunrise breathwork stretch wellness community shorts', emoji: '🧘' },
-  { label: 'Global Meetup', key: 'global_meetup', query: 'foreigners Seoul meetup international coffee language exchange shorts', emoji: '🌍' },
-  { label: 'Brand Collab', key: 'brand_collaboration', query: 'brand wellness activation experiential marketing community event shorts', emoji: '🤝' },
-  { label: 'Community', key: 'community_event', query: 'community celebration homecoming morning party gathering shorts', emoji: '🎉' },
-  { label: 'Corp Wellness', key: 'corporate_wellness', query: 'workplace morning wellness employee routine corporate community shorts', emoji: '🏢' },
-  { label: 'Wellness Life', key: 'other', query: 'sober lifestyle morning culture third place wellness community shorts', emoji: '🌿' },
+  { label: 'Coffee Chat',        key: 'daily_coffee_chat',    emoji: '☕' },
+  { label: 'Espresso Run',       key: 'espresso_run',         emoji: '🏃' },
+  { label: 'Book Dive',          key: 'book_dive',            emoji: '📚' },
+  { label: 'Morning Rave',       key: 'morning_rave',         emoji: '🌟' },
+  { label: 'SMCC Talk',          key: 'smcc_talk',            emoji: '🎙️' },
+  { label: 'SMCC Cinema',        key: 'smcc_cinema',          emoji: '🎬' },
+  { label: 'Breakfast',          key: 'breakfast',            emoji: '🍳' },
+  { label: 'Sunrise Meetup',     key: 'sunrise_meetup',       emoji: '🌄' },
+  { label: 'Travel Trip',        key: 'travel_trip',          emoji: '✈️' },
+  { label: 'Wellness Class',     key: 'wellness_class',       emoji: '🧘' },
+  { label: 'Global Meetup',      key: 'global_meetup',        emoji: '🌍' },
+  { label: 'Brand Collab',       key: 'brand_collaboration',  emoji: '🤝' },
+  { label: 'Community',          key: 'community_event',      emoji: '🎉' },
+  { label: 'Corp Wellness',      key: 'corporate_wellness',   emoji: '🏢' },
+  { label: 'Wellness Life',      key: 'other',                emoji: '🌿' },
 ]
 
-const IMAGE_CATEGORIES = [
-  { label: 'Coffee Chat', key: 'daily_coffee_chat', query: 'morning coffee strangers community cafe people', emoji: '☕' },
-  { label: 'Espresso Run', key: 'espresso_run', query: 'morning run coffee club runners outdoor', emoji: '🏃' },
-  { label: 'Book Dive', key: 'book_dive', query: 'book reading minimal aesthetic morning light', emoji: '📚' },
-  { label: 'Morning Rave', key: 'morning_rave', query: 'morning dance party energy crowd sunrise festival', emoji: '🌟' },
-  { label: 'SMCC Talk', key: 'smcc_talk', query: 'conversation people group discussion community table', emoji: '🎙️' },
-  { label: 'SMCC Cinema', key: 'smcc_cinema', query: 'outdoor cinema morning film screening people', emoji: '🎬' },
-  { label: 'Breakfast', key: 'breakfast', query: 'breakfast table morning food people community brunch', emoji: '🍳' },
-  { label: 'Sunrise Meetup', key: 'sunrise_meetup', query: 'sunrise outdoor morning people dawn gathering', emoji: '🌄' },
-  { label: 'Travel Trip', key: 'travel_trip', query: 'group travel community adventure strangers journey', emoji: '✈️' },
-  { label: 'Wellness Class', key: 'wellness_class', query: 'yoga morning wellness outdoor breathwork stretch', emoji: '🧘' },
-  { label: 'Global Meetup', key: 'global_meetup', query: 'international people diversity community meeting city', emoji: '🌍' },
-  { label: 'Brand Collab', key: 'brand_collaboration', query: 'brand event experiential marketing lifestyle community', emoji: '🤝' },
-  { label: 'Community', key: 'community_event', query: 'community party celebration people gathering outdoor', emoji: '🎉' },
-  { label: 'Corp Wellness', key: 'corporate_wellness', query: 'workplace wellness morning office community employee', emoji: '🏢' },
-  { label: 'Wellness Life', key: 'other', query: 'sober lifestyle morning wellness minimal aesthetic city', emoji: '🌿' },
-]
+// ─── Helpers ──────────────────────────────────────────────────────
 
 function parseDuration(iso: string): number {
   const m = iso.match(/PT(?:(\d+)M)?(?:(\d+)S)?/)
@@ -50,20 +62,98 @@ function parseDuration(iso: string): number {
   return (Number(m[1] ?? 0) * 60) + Number(m[2] ?? 0)
 }
 
-function generateWhyFit(video: YouTubeVideo, brandFit: number, cringeRisk: number): string {
-  if (brandFit >= 60 && cringeRisk <= 20) return '아침 루틴·커뮤니티 키워드가 SMCC 철학과 잘 맞아요.'
-  if (brandFit >= 40 && cringeRisk <= 30) return '건강한 변화를 담은 콘텐츠로 참고 가치가 높아요.'
-  if (cringeRisk >= 50) return '자극적 요소가 있어 참고는 되지만 톤 조정이 필요해요.'
-  if (video.viewCount > 500000) return '높은 조회수로 포맷·편집 스타일 참고에 좋아요.'
-  return '브랜드 무드와 유사한 감성의 콘텐츠예요.'
+function fmtViews(n: number): string {
+  return n >= 10000 ? `${(n / 10000).toFixed(1)}만` : n.toLocaleString()
 }
 
-interface EnrichedVideo extends YouTubeVideo {
-  brandFit: number
-  cringeRisk: number
-  growthPotential: number
-  whyFit: string
+// ─── ScoreBar ─────────────────────────────────────────────────────
+
+function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)))
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[11px] text-[#9ca3af] w-16 flex-shrink-0">{label}</span>
+      <div className="flex-1 h-1.5 bg-[#f3f4f6] rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+      <span className="text-[11px] font-medium w-6 text-right" style={{ color }}>{pct}</span>
+    </div>
+  )
 }
+
+// ─── ExternalSearch ───────────────────────────────────────────────
+
+function ExternalSearch({ query }: { query: string }) {
+  const enc = encodeURIComponent(query)
+  const links = [
+    { label: 'YouTube에서 검색', href: `https://www.youtube.com/results?search_query=${enc}` },
+    { label: 'TikTok에서 검색',  href: `https://www.tiktok.com/search?q=${enc}` },
+    { label: 'Pinterest에서 검색', href: `https://www.pinterest.com/search/pins/?q=${enc}` },
+    { label: 'Instagram 검색', href: `https://www.google.com/search?q=site:instagram.com/reel/ ${enc}` },
+  ]
+  return (
+    <div className="flex flex-wrap gap-2 mb-5">
+      {links.map((l) => (
+        <a
+          key={l.label}
+          href={l.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-[#e5e7eb] text-xs text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd] transition-colors"
+        >
+          {l.label}
+          <ExternalLink size={10} />
+        </a>
+      ))}
+    </div>
+  )
+}
+
+// ─── SearchChips ──────────────────────────────────────────────────
+
+function SearchChips({
+  programKey,
+  activeChip,
+  onChipClick,
+}: {
+  programKey: string
+  activeChip: string | null
+  onChipClick: (query: string | null) => void
+}) {
+  const config = PROGRAM_CONFIGS[programKey]
+  if (!config) return null
+  return (
+    <div className="flex flex-wrap gap-2 mb-4">
+      <button
+        onClick={() => onChipClick(null)}
+        className={cn(
+          'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+          activeChip === null
+            ? 'bg-[#00b1cd] text-white border-[#00b1cd]'
+            : 'bg-white border-[#e5e7eb] text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd]'
+        )}
+      >
+        전체
+      </button>
+      {config.searchChips.map((chip) => (
+        <button
+          key={chip.query}
+          onClick={() => onChipClick(chip.query)}
+          className={cn(
+            'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+            activeChip === chip.query
+              ? 'bg-[#00b1cd] text-white border-[#00b1cd]'
+              : 'bg-white border-[#e5e7eb] text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd]'
+          )}
+        >
+          {chip.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── VideoModal ───────────────────────────────────────────────────
 
 function VideoModal({ video, onClose, onPrev, onNext, hasPrev, hasNext, onSave, saved }: {
   video: EnrichedVideo
@@ -108,50 +198,50 @@ function VideoModal({ video, onClose, onPrev, onNext, hasPrev, hasNext, onSave, 
           />
         </div>
 
-        {/* 하단: 점수 + 저장 */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[#111]">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#00b1cd]" />
-              <span className="text-white/70 text-xs">브랜드 {video.brandFit}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#F43F55]" />
-              <span className="text-white/70 text-xs">자극 {video.cringeRisk}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#FDB334]" />
-              <span className="text-white/70 text-xs">성장 {video.growthPotential}</span>
-            </div>
+        {/* 하단: 점수 + 이유 + 저장 */}
+        <div className="px-4 py-3 bg-[#111] space-y-2">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <ScoreBar label="프로그램 적합" value={video.programFitScore} color="#00b1cd" />
+            <ScoreBar label="SMCC 무드" value={video.smccMoodScore} color="#7C3AED" />
+            <ScoreBar label="성장 가능성" value={video.growthPotentialScore} color="#FDB334" />
+            <ScoreBar label="자극 위험" value={video.cringeRiskScore} color="#F43F55" />
           </div>
-          <button onClick={onSave} disabled={saved}
-            className={cn('flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
-              saved ? 'bg-[#00899e] text-white cursor-default' : 'bg-[#00b1cd] text-white hover:bg-[#008fa6]')}>
-            {saved ? <Check size={13} /> : <BookmarkPlus size={13} />}
-            {saved ? '저장됨' : '저장하기'}
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-[#9ca3af] w-16 flex-shrink-0">최종 점수</span>
+            <span className="text-sm font-bold text-[#00b1cd]">{Math.round(video.finalScore)}</span>
+          </div>
+          {video.whyRecommended && (
+            <p className="text-xs text-white/70 bg-white/5 rounded-lg px-3 py-2">
+              💡 {video.whyRecommended}
+            </p>
+          )}
+          {video.smccApplyPoint && (
+            <p className="text-xs text-[#00b1cd]/80 bg-[#00b1cd]/10 rounded-lg px-3 py-2">
+              ✨ {video.smccApplyPoint}
+            </p>
+          )}
+          {video.sourceQuery && (
+            <p className="text-[10px] text-white/30">검색: {video.sourceQuery}</p>
+          )}
+          <div className="flex justify-end pt-1">
+            <button onClick={onSave} disabled={saved}
+              className={cn('flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                saved ? 'bg-[#00899e] text-white cursor-default' : 'bg-[#00b1cd] text-white hover:bg-[#008fa6]')}>
+              {saved ? <Check size={13} /> : <BookmarkPlus size={13} />}
+              {saved ? '저장됨' : '저장하기'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-function ScoreChip({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold"
-        style={{ backgroundColor: color }}>
-        {value}
-      </div>
-      <span className="text-[11px] text-[#9ca3af]">{label}</span>
-    </div>
-  )
-}
+// ─── VideoCard ────────────────────────────────────────────────────
 
 function VideoCard({ video, onSave, saved, onPlay }: {
   video: EnrichedVideo; onSave: () => void; saved: boolean; onPlay: () => void
 }) {
-  const fmt = (n: number) => n >= 10000 ? `${(n / 10000).toFixed(1)}만` : n.toLocaleString()
   return (
     <div className="bg-white rounded-xl border border-[#e5e7eb] overflow-hidden hover:border-[#9FC6C8] hover:shadow-md transition-all flex flex-col">
       <div className="relative cursor-pointer group" onClick={onPlay}>
@@ -162,21 +252,28 @@ function VideoCard({ video, onSave, saved, onPlay }: {
           </div>
         </div>
         <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 text-white text-[11px] rounded-full">Shorts</span>
-        {video.cringeRisk >= 50 && (
-          <span className="absolute bottom-2 left-2 px-2 py-0.5 bg-[#FEE2E2] text-[#991B1B] text-[11px] rounded-full font-medium">주의</span>
-        )}
       </div>
+
       <div className="p-3.5 flex flex-col flex-1">
-        <p className="text-sm font-medium text-[#0B3558] leading-snug line-clamp-2 mb-1 cursor-pointer hover:text-[#00b1cd]" onClick={onPlay}>{video.title}</p>
-        <p className="text-xs text-[#9ca3af] mb-3">{video.channelTitle} · 조회 {fmt(video.viewCount)}</p>
+        <p className="text-sm font-medium text-[#0B3558] leading-snug line-clamp-2 mb-1 cursor-pointer hover:text-[#00b1cd]" onClick={onPlay}>
+          {video.title}
+        </p>
+        <p className="text-xs text-[#9ca3af] mb-3">
+          {video.channelTitle} · 조회 {fmtViews(video.viewCount)}
+        </p>
+
+        {/* Score bars */}
+        <div className="space-y-1.5 mb-3">
+          <ScoreBar label="프로그램 적합" value={video.programFitScore} color="#00b1cd" />
+          <ScoreBar label="SMCC 무드" value={video.smccMoodScore} color="#7C3AED" />
+          <ScoreBar label="최종 점수" value={video.finalScore} color="#059669" />
+        </div>
+
+        {/* Why recommended */}
         <div className="bg-[#f9fafb] rounded-lg px-3 py-2 mb-3">
-          <p className="text-xs text-[#4D7F95] leading-relaxed">💡 {video.whyFit}</p>
+          <p className="text-xs text-[#4D7F95] leading-relaxed">💡 {video.whyRecommended}</p>
         </div>
-        <div className="flex justify-around mb-3">
-          <ScoreChip label="브랜드 적합" value={video.brandFit} color="#00b1cd" />
-          <ScoreChip label="자극 위험" value={video.cringeRisk} color="#F43F55" />
-          <ScoreChip label="성장 가능성" value={video.growthPotential} color="#FDB334" />
-        </div>
+
         <button onClick={onSave} disabled={saved}
           className={cn('mt-auto w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
             saved ? 'bg-[#e6f7fa] text-[#00899e] cursor-default' : 'bg-[#00b1cd] text-white hover:bg-[#008fa6]')}>
@@ -187,6 +284,8 @@ function VideoCard({ video, onSave, saved, onPlay }: {
     </div>
   )
 }
+
+// ─── ImageCard ────────────────────────────────────────────────────
 
 function ImageCard({ photo, onSave, saved }: { photo: PexelsPhoto; onSave: () => void; saved: boolean }) {
   return (
@@ -210,10 +309,13 @@ function ImageCard({ photo, onSave, saved }: { photo: PexelsPhoto; onSave: () =>
   )
 }
 
+// ─── DiscoverPage ─────────────────────────────────────────────────
+
 export function DiscoverPage() {
   const createReference = useCreateReference()
   const [mode, setMode] = useState<'video' | 'image'>('video')
   const [activeCat, setActiveCat] = useState(0)
+  const [activeChip, setActiveChip] = useState<string | null>(null)
   const [videos, setVideos] = useState<EnrichedVideo[]>([])
   const [photos, setPhotos] = useState<PexelsPhoto[]>([])
   const [loading, setLoading] = useState(false)
@@ -221,43 +323,72 @@ export function DiscoverPage() {
   const [savedPhotoIds, setSavedPhotoIds] = useState<Set<number>>(new Set())
   const [playingVideo, setPlayingVideo] = useState<EnrichedVideo | null>(null)
   const [playingIndex, setPlayingIndex] = useState<number>(-1)
+  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>('')
 
-  const videoCategories = PROGRAM_CATEGORIES
-  const imageCategories = IMAGE_CATEGORIES
+  const currentCat = PROGRAM_CATEGORIES[activeCat]
 
-  const fetchVideos = async (catIndex: number) => {
+  const fetchVideos = async (catIndex: number, chipQuery: string | null) => {
     setLoading(true)
     setVideos([])
+    const cat = PROGRAM_CATEGORIES[catIndex]
+    const config = PROGRAM_CONFIGS[cat.key]
+    const query = chipQuery ?? config?.searchQueries[0] ?? cat.label
+    setCurrentSearchQuery(query)
     try {
-      const raw = await searchYouTube(videoCategories[catIndex].query, 20)
+      const raw = await searchYouTube(query, 20)
       const enriched: EnrichedVideo[] = raw
         .filter((v) => parseDuration(v.duration) <= 90)
         .map((v) => {
-          const brandFit = calcBrandFit(v.title, v.description, v.tags)
-          const cringeRisk = calcCringeRisk(v.title, v.description)
-          const growthPotential = calcGrowthPotential(v.viewCount, v.subscriberCount, v.publishedAt)
-          return { ...v, brandFit, cringeRisk, growthPotential, whyFit: generateWhyFit(v, brandFit, cringeRisk) }
+          const programFitScore = calcProgramFitScore(v.title, v.description, v.tags, cat.key)
+          const smccMoodScore = calcSmccMoodScore(v.title, v.description, v.tags)
+          const contentStructureScore = calcContentStructureScore(v.title, v.description, v.likeCount, v.viewCount)
+          const growthPotentialScore = calcGrowthPotentialNew(v.viewCount, v.subscriberCount, v.publishedAt)
+          const cringeRiskScore = calcCringeRiskNew(v.title, v.description, cat.key)
+          const finalScore = calcFinalScore({ programFitScore, smccMoodScore, contentStructureScore, growthPotentialScore, cringeRiskScore })
+          const { whyRecommended, smccApplyPoint } = generateReasonTexts(v, cat.key, { programFitScore, smccMoodScore })
+          return { ...v, programFitScore, smccMoodScore, contentStructureScore, growthPotentialScore, cringeRiskScore, finalScore, whyRecommended, smccApplyPoint, sourceQuery: query }
         })
-      enriched.sort((a, b) => (b.brandFit - b.cringeRisk * 0.5) - (a.brandFit - a.cringeRisk * 0.5))
+        .filter((v) => !shouldFilter(v))
+
+      enriched.sort((a, b) => b.finalScore - a.finalScore)
       setVideos(enriched)
-    } catch { setVideos([]) }
-    finally { setLoading(false) }
+    } catch {
+      setVideos([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const fetchImages = async (catIndex: number) => {
     setLoading(true)
     setPhotos([])
+    const cat = PROGRAM_CATEGORIES[catIndex]
+    const config = PROGRAM_CONFIGS[cat.key]
+    setCurrentSearchQuery(config?.pexelsQuery ?? cat.label)
     try {
-      const results = await searchPexels(imageCategories[catIndex].query)
+      const results = await searchPexelsByProgram(cat.key)
       setPhotos(results)
-    } catch { setPhotos([]) }
-    finally { setLoading(false) }
+    } catch {
+      setPhotos([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
-    if (mode === 'video') fetchVideos(activeCat)
+    if (mode === 'video') fetchVideos(activeCat, activeChip)
     else fetchImages(activeCat)
-  }, [mode, activeCat])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, activeCat, activeChip])
+
+  const handleChipClick = (query: string | null) => {
+    setActiveChip(query)
+  }
+
+  const handleCatChange = (i: number) => {
+    setActiveCat(i)
+    setActiveChip(null)
+  }
 
   const handleSaveVideo = async (video: EnrichedVideo, programKey: string) => {
     await createReference.mutateAsync({
@@ -268,9 +399,9 @@ export function DiscoverPage() {
       program_type: programKey as any,
       thumbnail_url: video.thumbnail,
       tags: video.tags.slice(0, 5),
-      brand_fit_score: video.brandFit,
-      cringe_risk_score: video.cringeRisk,
-      growth_potential_score: video.growthPotential,
+      brand_fit_score: video.programFitScore,
+      cringe_risk_score: video.cringeRiskScore,
+      growth_potential_score: video.growthPotentialScore,
     })
     setSavedVideoIds((prev) => new Set(prev).add(video.id))
   }
@@ -282,20 +413,23 @@ export function DiscoverPage() {
       platform: 'website',
       content_format: 'feed_image',
       thumbnail_url: photo.src.medium,
-      tags: [],
+      tags: ['visual_mood_reference'],
     })
     setSavedPhotoIds((prev) => new Set(prev).add(photo.id))
   }
 
-  const currentCats = mode === 'video' ? videoCategories : imageCategories
-
   return (
     <div className="p-8">
       <div className="flex items-start justify-between mb-4">
-        <PageHeader title="Discover" description="SMCC 프로그램별 트렌딩 콘텐츠를 AI가 자동으로 찾아드려요." />
-        <button onClick={() => mode === 'video' ? fetchVideos(activeCat) : fetchImages(activeCat)}
+        <PageHeader
+          title="Discover"
+          description="SMCC 프로그램별 트렌딩 콘텐츠를 AI가 자동으로 찾아드려요."
+        />
+        <button
+          onClick={() => mode === 'video' ? fetchVideos(activeCat, activeChip) : fetchImages(activeCat)}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e5e7eb] text-sm text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd] transition-colors disabled:opacity-40 mt-1">
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e5e7eb] text-sm text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd] transition-colors disabled:opacity-40 mt-1"
+        >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           새로고침
         </button>
@@ -303,19 +437,19 @@ export function DiscoverPage() {
 
       {/* 점수 범례 */}
       {mode === 'video' && (
-        <div className="flex items-center gap-4 mb-5 px-4 py-3 bg-[#f9fafb] rounded-xl border border-[#e5e7eb]">
+        <div className="flex flex-wrap items-center gap-4 mb-5 px-4 py-3 bg-[#f9fafb] rounded-xl border border-[#e5e7eb]">
           <span className="text-xs text-[#4D7F95] font-medium">점수 기준</span>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-[#00b1cd]" />
-            <span className="text-xs text-[#4D7F95]">브랜드 적합도 — 높을수록 SMCC 철학에 맞아요</span>
+            <span className="text-xs text-[#4D7F95]">프로그램 적합도 — 높을수록 프로그램 유형에 맞아요</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-[#7C3AED]" />
+            <span className="text-xs text-[#4D7F95]">SMCC 무드 — 아침 커뮤니티 감성 일치도</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-[#F43F55]" />
             <span className="text-xs text-[#4D7F95]">자극 위험도 — 낮을수록 안전해요</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-[#FDB334]" />
-            <span className="text-xs text-[#4D7F95]">성장 가능성 — 높을수록 바이럴 가능성이 높아요</span>
           </div>
         </div>
       )}
@@ -323,56 +457,108 @@ export function DiscoverPage() {
       {/* 모드 전환 */}
       <div className="flex rounded-xl bg-[#f3f4f6] p-1 mb-5 w-fit">
         {(['video', 'image'] as const).map((m) => (
-          <button key={m} onClick={() => { setMode(m); setActiveCat(0) }}
+          <button
+            key={m}
+            onClick={() => { setMode(m); setActiveCat(0); setActiveChip(null) }}
             className={cn('px-5 py-2 rounded-lg text-sm font-medium transition-colors',
-              mode === m ? 'bg-white text-[#0B3558] shadow-sm' : 'text-[#4D7F95] hover:text-[#0B3558]')}>
+              mode === m ? 'bg-white text-[#0B3558] shadow-sm' : 'text-[#4D7F95] hover:text-[#0B3558]')}
+          >
             {m === 'video' ? '🎬 쇼츠' : '🖼️ 이미지'}
           </button>
         ))}
       </div>
 
       {/* 카테고리 탭 */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {currentCats.map((cat, i) => (
-          <button key={cat.key} onClick={() => setActiveCat(i)}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {PROGRAM_CATEGORIES.map((cat, i) => (
+          <button
+            key={cat.key}
+            onClick={() => handleCatChange(i)}
             className={cn('flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors',
-              activeCat === i ? 'bg-[#00b1cd] text-white' : 'bg-white border border-[#e5e7eb] text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd]')}>
+              activeCat === i
+                ? 'bg-[#00b1cd] text-white'
+                : 'bg-white border border-[#e5e7eb] text-[#4D7F95] hover:border-[#00b1cd] hover:text-[#00b1cd]')}
+          >
             <span>{cat.emoji}</span>{cat.label}
           </button>
         ))}
       </div>
 
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <Loader2 size={32} className="animate-spin text-[#00b1cd]" />
-          <p className="text-sm text-[#4D7F95]">{mode === 'video' ? `${currentCats[activeCat]?.label} 관련 콘텐츠 분석 중...` : '이미지 레퍼런스 불러오는 중...'}</p>
+      {/* Search Chips (video mode only) */}
+      {mode === 'video' && (
+        <SearchChips
+          programKey={currentCat.key}
+          activeChip={activeChip}
+          onChipClick={handleChipClick}
+        />
+      )}
+
+      {/* External Search Links */}
+      <ExternalSearch query={currentSearchQuery} />
+
+      {/* Pexels notice (image mode) */}
+      {mode === 'image' && (
+        <div className="mb-5 px-4 py-3 bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl">
+          <p className="text-xs text-[#166534]">
+            🖼️ 이미지는 비주얼 무드 참고용이에요. 저장 시 'visual_mood_reference' 태그가 자동 추가됩니다.
+          </p>
         </div>
       )}
 
+      {/* Loading */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-24 gap-3">
+          <Loader2 size={32} className="animate-spin text-[#00b1cd]" />
+          <p className="text-sm text-[#4D7F95]">
+            {mode === 'video'
+              ? `${PROGRAM_LABEL_KO[currentCat.key] ?? currentCat.label} 관련 콘텐츠를 SMCC 기준으로 분석 중...`
+              : '이미지 레퍼런스 불러오는 중...'}
+          </p>
+        </div>
+      )}
+
+      {/* Video grid */}
       {!loading && mode === 'video' && videos.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {videos.map((v, idx) => (
-            <VideoCard key={v.id} video={v}
+            <VideoCard
+              key={v.id}
+              video={v}
               onPlay={() => { setPlayingVideo(v); setPlayingIndex(idx) }}
-              onSave={() => handleSaveVideo(v, currentCats[activeCat]?.key ?? 'other')}
-              saved={savedVideoIds.has(v.id)} />
+              onSave={() => handleSaveVideo(v, currentCat.key)}
+              saved={savedVideoIds.has(v.id)}
+            />
           ))}
         </div>
       )}
 
+      {/* Image grid */}
       {!loading && mode === 'image' && photos.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {photos.map((p) => <ImageCard key={p.id} photo={p} onSave={() => handleSavePhoto(p)} saved={savedPhotoIds.has(p.id)} />)}
+          {photos.map((p) => (
+            <ImageCard key={p.id} photo={p} onSave={() => handleSavePhoto(p)} saved={savedPhotoIds.has(p.id)} />
+          ))}
         </div>
       )}
 
-      {!loading && ((mode === 'video' && videos.length === 0) || (mode === 'image' && photos.length === 0)) && (
+      {/* Empty state */}
+      {!loading && mode === 'video' && videos.length === 0 && (
+        <div className="text-center py-20">
+          <p className="text-2xl mb-3">🔍</p>
+          <p className="text-sm text-[#4D7F95] whitespace-pre-line">
+            {`이 카테고리에서 SMCC 기준을 통과한 결과가 없어요.\n검색어 Chip을 바꾸거나 외부 검색을 이용해보세요.`}
+          </p>
+        </div>
+      )}
+
+      {!loading && mode === 'image' && photos.length === 0 && (
         <div className="text-center py-20">
           <p className="text-2xl mb-3">😅</p>
-          <p className="text-sm text-[#4D7F95]">콘텐츠를 불러오지 못했어요. 새로고침을 눌러주세요.</p>
+          <p className="text-sm text-[#4D7F95]">이미지를 불러오지 못했어요. 새로고침을 눌러주세요.</p>
         </div>
       )}
 
+      {/* Video Modal */}
       {playingVideo && (
         <VideoModal
           video={playingVideo}
@@ -389,7 +575,7 @@ export function DiscoverPage() {
             setPlayingIndex(idx)
             setPlayingVideo(videos[idx])
           }}
-          onSave={() => handleSaveVideo(playingVideo, currentCats[activeCat]?.key ?? 'other')}
+          onSave={() => handleSaveVideo(playingVideo, currentCat.key)}
           saved={savedVideoIds.has(playingVideo.id)}
         />
       )}
