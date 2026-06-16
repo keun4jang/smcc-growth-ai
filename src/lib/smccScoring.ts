@@ -413,6 +413,81 @@ export function shouldFilter(scores: {
   )
 }
 
+// ─── Result Status Classification ─────────────────────────────────
+
+export type ResultStatus = 'good_reference' | 'adaptable' | 'weak_match' | 'rejected' | 'visual_mood_reference'
+
+export const STATUS_LABELS: Record<ResultStatus, string> = {
+  good_reference: 'Good Reference',
+  adaptable: 'Adaptable',
+  weak_match: 'Weak Match',
+  rejected: 'Rejected',
+  visual_mood_reference: 'Visual Mood Reference',
+}
+
+export const STATUS_COLORS: Record<ResultStatus, string> = {
+  good_reference: '#00b1cd',
+  adaptable: '#7C3AED',
+  weak_match: '#FDB334',
+  rejected: '#9ca3af',
+  visual_mood_reference: '#3D7060',
+}
+
+// 명확히 부적합한 경우만 강제 Rejected 처리 (술/나이트클럽, 헌팅/소개팅, 돈벌기/투자/강의팔이, 제품 리뷰만, 운동 기록 경쟁만)
+const HARD_REJECT_SIGNALS = [
+  'nightclub', 'alcohol party', 'bar crawl', 'drinking game', 'club night', 'shots bar', 'afterparty hookup', 'drunk night',
+  'pickup line', 'speed dating', 'tinder', 'hookup', 'dating meetup only',
+  'make money fast', 'get rich quick', 'investment tips', 'crypto trading', 'side hustle income', 'sell course', '강의 판매', '투자 추천', '돈버는법',
+  'unboxing review only', 'product review only', 'haul review only',
+  'personal record PR only', 'race time ranking', 'marathon record only', 'competition ranking only',
+]
+
+export function isHardRejected(title: string, description: string): boolean {
+  const text = (title + ' ' + description).toLowerCase()
+  return HARD_REJECT_SIGNALS.some((s) => text.includes(s.toLowerCase()))
+}
+
+export function classifyStatus(
+  scores: { finalScore: number; cringeRiskScore: number },
+  hardRejected: boolean
+): ResultStatus {
+  if (hardRejected) return 'rejected'
+  if (scores.finalScore >= 70 && scores.cringeRiskScore <= 45) return 'good_reference'
+  if (scores.finalScore >= 45 && scores.cringeRiskScore <= 70) return 'adaptable'
+  if (scores.finalScore >= 25) return 'weak_match'
+  return 'rejected'
+}
+
+// ─── Cringe Risk Level (경고 기준, 숨김 기준 아님) ──────────────────
+
+export type CringeLevel = 'safe' | 'caution' | 'danger'
+
+export const CRINGE_LABELS: Record<CringeLevel, string> = {
+  safe: '안전',
+  caution: '주의',
+  danger: '위험',
+}
+
+export function cringeLevel(score: number): CringeLevel {
+  if (score <= 40) return 'safe'
+  if (score <= 70) return 'caution'
+  return 'danger'
+}
+
+// ─── Low Score Reason ──────────────────────────────────────────────
+
+export function generateLowScoreReason(scores: {
+  programFitScore: number
+  smccMoodScore: number
+  cringeRiskScore: number
+}): string {
+  const reasons: string[] = []
+  if (scores.programFitScore < 50) reasons.push('프로그램 핵심 키워드와의 일치도가 낮아요')
+  if (scores.smccMoodScore < 50) reasons.push('아침·커뮤니티 무드 신호가 부족해요')
+  if (scores.cringeRiskScore > 60) reasons.push('자극적이거나 부적합할 수 있는 표현이 감지됐어요')
+  return reasons.join(' · ')
+}
+
 // ─── Reason Text Generator ────────────────────────────────────────
 
 const SMCC_APPLY_BY_PROGRAM: Record<string, string> = {

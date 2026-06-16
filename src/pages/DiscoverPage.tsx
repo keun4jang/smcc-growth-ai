@@ -13,9 +13,16 @@ import {
   calcGrowthPotentialNew,
   calcCringeRiskNew,
   calcFinalScore,
-  shouldFilter,
+  isHardRejected,
+  classifyStatus,
+  cringeLevel,
+  CRINGE_LABELS,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  generateLowScoreReason,
   generateReasonTexts,
 } from '@/lib/smccScoring'
+import type { ResultStatus } from '@/lib/smccScoring'
 import type { YouTubeVideo } from '@/lib/youtube'
 import type { PexelsPhoto } from '@/lib/pexels'
 import { cn } from '@/lib/utils'
@@ -31,7 +38,17 @@ interface EnrichedVideo extends YouTubeVideo {
   finalScore: number
   whyRecommended: string
   smccApplyPoint: string
+  lowScoreReason: string
   sourceQuery: string
+  status: ResultStatus
+}
+
+type ViewMode = 'recommended' | 'broad' | 'strict'
+
+const VIEW_MODE_LABELS: Record<ViewMode, string> = {
+  recommended: '추천순',
+  broad: '넓게 보기',
+  strict: '엄격하게 보기',
 }
 
 // ─── Program Categories ───────────────────────────────────────────
@@ -78,6 +95,30 @@ function ScoreBar({ label, value, color }: { label: string; value: number; color
       </div>
       <span className="text-[11px] font-medium w-6 text-right" style={{ color }}>{pct}</span>
     </div>
+  )
+}
+
+// ─── StatusBadge ──────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: ResultStatus }) {
+  const color = STATUS_COLORS[status]
+  return (
+    <span
+      className="px-2 py-0.5 rounded-full text-[11px] font-medium"
+      style={{ backgroundColor: `${color}1A`, color }}
+    >
+      {STATUS_LABELS[status]}
+    </span>
+  )
+}
+
+function CringeTag({ score }: { score: number }) {
+  const level = cringeLevel(score)
+  const colors = { safe: '#3D7060', caution: '#B07D00', danger: '#991B1B' }
+  return (
+    <span className="text-[11px] font-medium" style={{ color: colors[level] }}>
+      자극 {CRINGE_LABELS[level]} ({score})
+    </span>
   )
 }
 
@@ -186,6 +227,11 @@ function VideoModal({ video, onClose, onPrev, onNext, hasPrev, hasNext, onSave, 
           </button>
         </div>
 
+        <div className="flex items-center gap-2 px-4 pt-3 bg-[#111]">
+          <StatusBadge status={video.status} />
+          <CringeTag score={video.cringeRiskScore} />
+        </div>
+
         {/* 영상 */}
         <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
           <iframe
@@ -218,6 +264,11 @@ function VideoModal({ video, onClose, onPrev, onNext, hasPrev, hasNext, onSave, 
           {video.smccApplyPoint && (
             <p className="text-xs text-[#00b1cd]/80 bg-[#00b1cd]/10 rounded-lg px-3 py-2">
               ✨ {video.smccApplyPoint}
+            </p>
+          )}
+          {video.lowScoreReason && (
+            <p className="text-xs text-[#F43F55]/80 bg-[#F43F55]/10 rounded-lg px-3 py-2">
+              ⚠️ 낮은 점수 이유: {video.lowScoreReason}
             </p>
           )}
           {video.sourceQuery && (
@@ -255,6 +306,10 @@ function VideoCard({ video, onSave, saved, onPlay }: {
       </div>
 
       <div className="p-3.5 flex flex-col flex-1">
+        <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+          <StatusBadge status={video.status} />
+          <CringeTag score={video.cringeRiskScore} />
+        </div>
         <p className="text-sm font-medium text-[#0B3558] leading-snug line-clamp-2 mb-1 cursor-pointer hover:text-[#00b1cd]" onClick={onPlay}>
           {video.title}
         </p>
@@ -272,6 +327,9 @@ function VideoCard({ video, onSave, saved, onPlay }: {
         {/* Why recommended */}
         <div className="bg-[#f9fafb] rounded-lg px-3 py-2 mb-3">
           <p className="text-xs text-[#4D7F95] leading-relaxed">💡 {video.whyRecommended}</p>
+          {video.lowScoreReason && (
+            <p className="text-xs text-[#F43F55] leading-relaxed mt-1">⚠️ {video.lowScoreReason}</p>
+          )}
         </div>
 
         <button onClick={onSave} disabled={saved}
@@ -297,6 +355,9 @@ function ImageCard({ photo, onSave, saved }: { photo: PexelsPhoto; onSave: () =>
         </div>
       </a>
       <div className="p-3.5 flex flex-col flex-1">
+        <div className="mb-1.5">
+          <StatusBadge status="visual_mood_reference" />
+        </div>
         <p className="text-xs text-[#9ca3af] mb-3">📷 {photo.photographer} · Pexels</p>
         <button onClick={onSave} disabled={saved}
           className={cn('mt-auto w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
@@ -324,8 +385,25 @@ export function DiscoverPage() {
   const [playingVideo, setPlayingVideo] = useState<EnrichedVideo | null>(null)
   const [playingIndex, setPlayingIndex] = useState<number>(-1)
   const [currentSearchQuery, setCurrentSearchQuery] = useState<string>('')
+  const [viewMode, setViewMode] = useState<ViewMode>('recommended')
+  const [includeRejected, setIncludeRejected] = useState(false)
 
   const currentCat = PROGRAM_CATEGORIES[activeCat]
+
+  const filterByViewMode = (list: EnrichedVideo[]): EnrichedVideo[] => {
+    let result = includeRejected ? list : list.filter((v) => v.status !== 'rejected')
+    if (viewMode === 'strict') {
+      result = result.filter((v) => v.status === 'good_reference')
+    } else if (viewMode === 'recommended') {
+      const strong = result.filter((v) => v.status === 'good_reference' || v.status === 'adaptable')
+      result = strong.length > 0 ? strong : result
+    }
+    return result
+  }
+
+  const filteredVideos = filterByViewMode(videos)
+  const isFallback = filteredVideos.length === 0 && videos.length > 0
+  const displayVideos = isFallback ? videos.slice(0, 5) : filteredVideos
 
   const fetchVideos = async (catIndex: number, chipQuery: string | null) => {
     setLoading(true)
@@ -345,10 +423,14 @@ export function DiscoverPage() {
           const growthPotentialScore = calcGrowthPotentialNew(v.viewCount, v.subscriberCount, v.publishedAt)
           const cringeRiskScore = calcCringeRiskNew(v.title, v.description, cat.key)
           const finalScore = calcFinalScore({ programFitScore, smccMoodScore, contentStructureScore, growthPotentialScore, cringeRiskScore })
+          const hardRejected = isHardRejected(v.title, v.description)
+          const status = classifyStatus({ finalScore, cringeRiskScore }, hardRejected)
           const { whyRecommended, smccApplyPoint } = generateReasonTexts(v, cat.key, { programFitScore, smccMoodScore })
-          return { ...v, programFitScore, smccMoodScore, contentStructureScore, growthPotentialScore, cringeRiskScore, finalScore, whyRecommended, smccApplyPoint, sourceQuery: query }
+          const lowScoreReason = status === 'weak_match' || status === 'rejected'
+            ? generateLowScoreReason({ programFitScore, smccMoodScore, cringeRiskScore })
+            : ''
+          return { ...v, programFitScore, smccMoodScore, contentStructureScore, growthPotentialScore, cringeRiskScore, finalScore, whyRecommended, smccApplyPoint, lowScoreReason, sourceQuery: query, status }
         })
-        .filter((v) => !shouldFilter(v))
 
       enriched.sort((a, b) => b.finalScore - a.finalScore)
       setVideos(enriched)
@@ -493,6 +575,33 @@ export function DiscoverPage() {
         />
       )}
 
+      {/* View Mode + Rejected 토글 (video mode only) */}
+      {mode === 'video' && (
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="flex rounded-lg bg-[#f3f4f6] p-1">
+            {(['recommended', 'broad', 'strict'] as ViewMode[]).map((vm) => (
+              <button
+                key={vm}
+                onClick={() => setViewMode(vm)}
+                className={cn('px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+                  viewMode === vm ? 'bg-white text-[#0B3558] shadow-sm' : 'text-[#4D7F95] hover:text-[#0B3558]')}
+              >
+                {VIEW_MODE_LABELS[vm]}
+              </button>
+            ))}
+          </div>
+          <label className="flex items-center gap-1.5 text-xs text-[#4D7F95] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeRejected}
+              onChange={(e) => setIncludeRejected(e.target.checked)}
+              className="rounded border-[#e5e7eb] text-[#00b1cd] focus:ring-[#00b1cd]"
+            />
+            Rejected 포함
+          </label>
+        </div>
+      )}
+
       {/* External Search Links */}
       <ExternalSearch query={currentSearchQuery} />
 
@@ -518,18 +627,25 @@ export function DiscoverPage() {
       )}
 
       {/* Video grid */}
-      {!loading && mode === 'video' && videos.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {videos.map((v, idx) => (
-            <VideoCard
-              key={v.id}
-              video={v}
-              onPlay={() => { setPlayingVideo(v); setPlayingIndex(idx) }}
-              onSave={() => handleSaveVideo(v, currentCat.key)}
-              saved={savedVideoIds.has(v.id)}
-            />
-          ))}
-        </div>
+      {!loading && mode === 'video' && displayVideos.length > 0 && (
+        <>
+          {isFallback && (
+            <p className="text-sm text-[#4D7F95] mb-4">
+              엄격한 기준에 딱 맞는 결과는 적지만, 아래 후보를 검토해볼 수 있어요.
+            </p>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {displayVideos.map((v, idx) => (
+              <VideoCard
+                key={v.id}
+                video={v}
+                onPlay={() => { setPlayingVideo(v); setPlayingIndex(idx) }}
+                onSave={() => handleSaveVideo(v, currentCat.key)}
+                saved={savedVideoIds.has(v.id)}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {/* Image grid */}
@@ -541,12 +657,12 @@ export function DiscoverPage() {
         </div>
       )}
 
-      {/* Empty state */}
-      {!loading && mode === 'video' && videos.length === 0 && (
+      {/* Empty state (검색 자체에서 결과가 없을 때만) */}
+      {!loading && mode === 'video' && displayVideos.length === 0 && (
         <div className="text-center py-20">
           <p className="text-2xl mb-3">🔍</p>
           <p className="text-sm text-[#4D7F95] whitespace-pre-line">
-            {`이 카테고리에서 SMCC 기준을 통과한 결과가 없어요.\n검색어 Chip을 바꾸거나 외부 검색을 이용해보세요.`}
+            {`검색 결과가 없어요.\n검색어 Chip을 바꾸거나 외부 검색을 이용해보세요.`}
           </p>
         </div>
       )}
@@ -564,16 +680,16 @@ export function DiscoverPage() {
           video={playingVideo}
           onClose={() => setPlayingVideo(null)}
           hasPrev={playingIndex > 0}
-          hasNext={playingIndex < videos.length - 1}
+          hasNext={playingIndex < displayVideos.length - 1}
           onPrev={() => {
             const idx = playingIndex - 1
             setPlayingIndex(idx)
-            setPlayingVideo(videos[idx])
+            setPlayingVideo(displayVideos[idx])
           }}
           onNext={() => {
             const idx = playingIndex + 1
             setPlayingIndex(idx)
-            setPlayingVideo(videos[idx])
+            setPlayingVideo(displayVideos[idx])
           }}
           onSave={() => handleSaveVideo(playingVideo, currentCat.key)}
           saved={savedVideoIds.has(playingVideo.id)}
