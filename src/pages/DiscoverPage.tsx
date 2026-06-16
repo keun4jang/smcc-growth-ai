@@ -628,7 +628,7 @@ function ImageCard({ photo, onSave, saved }: { photo: PexelsPhoto; onSave: () =>
 
 export function DiscoverPage() {
   const createReference = useCreateReference()
-  const [mode, setMode] = useState<'video' | 'image'>('video')
+  const [mode, setMode] = useState<'video' | 'image'>('image')
   const [activeCat, setActiveCat] = useState(0)
   const [activeChip, setActiveChip] = useState<string | null>(null)
   const [videos, setVideos] = useState<EnrichedVideo[]>([])
