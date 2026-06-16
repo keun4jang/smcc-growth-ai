@@ -1,9 +1,11 @@
-import { Users, Library, CalendarDays, TrendingUp } from 'lucide-react'
+import { Users, Library, CalendarDays, TrendingUp, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '@/components/common/PageHeader'
 import { ReferenceCard } from '@/components/reference/ReferenceCard'
 import { useReferences } from '@/hooks/useReferences'
 import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
+import { useState, useEffect } from 'react'
 
 function StatCard({ label, value, sub, icon: Icon }: {
   label: string
@@ -30,6 +32,13 @@ function StatCard({ label, value, sub, icon: Icon }: {
 export function DashboardPage() {
   const { user } = useAuth()
   const { data: references = [] } = useReferences({ sort: 'newest' })
+  const [currentFollowers, setCurrentFollowers] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!user) return
+    supabase.from('profiles').select('current_followers').eq('id', user.id).single()
+      .then(({ data }) => { if (data) setCurrentFollowers(data.current_followers) })
+  }, [user])
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? '좋은 아침이에요' : hour < 18 ? '좋은 오후예요' : '좋은 저녁이에요'
@@ -50,7 +59,27 @@ export function DashboardPage() {
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="현재 팔로워" value="—" sub="Settings에서 입력해주세요" icon={Users} />
+        <div className="bg-white rounded-xl border border-[#e5e7eb] p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs text-[#4D7F95] mb-1">현재 팔로워</p>
+              <p className="text-2xl font-bold text-[#0B3558]">
+                {currentFollowers ? currentFollowers.toLocaleString() : '—'}
+              </p>
+              <a
+                href="https://www.instagram.com/seoulmorningcoffeeclub/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-[#00b1cd] hover:underline mt-0.5"
+              >
+                Instagram에서 확인 <ExternalLink size={10} />
+              </a>
+            </div>
+            <div className="w-9 h-9 rounded-lg bg-[#e6f7fa] flex items-center justify-center">
+              <Users size={16} className="text-[#00b1cd]" />
+            </div>
+          </div>
+        </div>
         <StatCard label="저장된 레퍼런스" value={String(references.length)} sub={`즐겨찾기 ${favoriteCount}개`} icon={Library} />
         <StatCard label="이번 주 콘텐츠" value="0" sub="예정된 콘텐츠" icon={CalendarDays} />
         <StatCard
