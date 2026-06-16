@@ -175,6 +175,127 @@ export interface ReferenceFilters {
   sort?: 'newest' | 'oldest' | 'brand_fit' | 'growth'
 }
 
+// ─── Creator Resource (Resource Hub) ───────────────────────────────
+
+export type ResourceCategory =
+  | 'sound_effects'
+  | 'music_bgm'
+  | 'video_plugins'
+  | 'video_templates'
+  | 'stock_video'
+  | 'stock_photo'
+  | 'design_resources'
+  | 'fonts'
+  | 'icons'
+  | 'mockups'
+  | 'textures'
+  | 'sns_templates'
+  | 'editing_tools'
+  | 'ai_tools'
+  | 'production_checklist'
+  | 'platform_specs'
+  | 'inspiration_reference'
+  | 'legal_license'
+  | 'other'
+
+export const RESOURCE_CATEGORY_LABELS: Record<ResourceCategory, string> = {
+  sound_effects: '효과음',
+  music_bgm: 'BGM/음악',
+  video_plugins: '영상 플러그인',
+  video_templates: '영상 템플릿',
+  stock_video: '스톡 영상',
+  stock_photo: '스톡 사진',
+  design_resources: '디자인 리소스',
+  fonts: '폰트',
+  icons: '아이콘',
+  mockups: '목업',
+  textures: '텍스처',
+  sns_templates: 'SNS 템플릿',
+  editing_tools: '편집 도구',
+  ai_tools: 'AI 도구',
+  production_checklist: '제작 체크리스트',
+  platform_specs: '플랫폼 규격',
+  inspiration_reference: '레퍼런스/영감',
+  legal_license: '저작권/라이선스',
+  other: '기타',
+}
+
+export const RESOURCE_CATEGORY_LIST = Object.keys(RESOURCE_CATEGORY_LABELS) as ResourceCategory[]
+
+export type ResourceVerificationStatus = 'unchecked' | 'usable' | 'license_caution' | 'not_recommended'
+
+export const RESOURCE_VERIFICATION_LABELS: Record<ResourceVerificationStatus, string> = {
+  unchecked: '미확인',
+  usable: '사용 가능',
+  license_caution: '라이선스 주의',
+  not_recommended: '비추천',
+}
+
+export interface CreatorResource {
+  id: string
+  user_id: string
+  title: string
+  url: string
+  category: ResourceCategory
+  description: string | null
+  platform_or_tool: string | null
+  use_case: string | null
+  is_free: boolean
+  is_commercial_use_allowed: boolean | null
+  attribution_required: boolean | null
+  license_note: string | null
+  tags: string[]
+  memo: string | null
+  smcc_use_case: string | null
+  is_favorite: boolean
+  verification_status: ResourceVerificationStatus
+  last_checked_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateResourceInput {
+  title: string
+  url: string
+  category: ResourceCategory
+  description?: string | null
+  platform_or_tool?: string | null
+  use_case?: string | null
+  is_free?: boolean
+  is_commercial_use_allowed?: boolean | null
+  attribution_required?: boolean | null
+  license_note?: string | null
+  tags?: string[]
+  memo?: string | null
+  smcc_use_case?: string | null
+  verification_status?: ResourceVerificationStatus
+}
+
+export interface UpdateResourceInput {
+  title?: string
+  url?: string
+  category?: ResourceCategory
+  description?: string | null
+  platform_or_tool?: string | null
+  use_case?: string | null
+  is_free?: boolean
+  is_commercial_use_allowed?: boolean | null
+  attribution_required?: boolean | null
+  license_note?: string | null
+  tags?: string[]
+  memo?: string | null
+  smcc_use_case?: string | null
+  is_favorite?: boolean
+  verification_status?: ResourceVerificationStatus
+  last_checked_at?: string | null
+}
+
+export interface ResourceFilters {
+  search?: string
+  category?: ResourceCategory | ''
+  is_favorite?: boolean
+}
+
 // ─── Content Idea ─────────────────────────────────────────────────
 
 export interface ContentIdea {

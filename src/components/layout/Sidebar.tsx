@@ -8,6 +8,7 @@ import {
   Settings,
   LogOut,
   Telescope,
+  FolderKanban,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -16,6 +17,7 @@ const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/discover', icon: Telescope, label: 'Discover' },
   { to: '/references', icon: Library, label: 'References' },
+  { to: '/resources', icon: FolderKanban, label: 'Resource Hub' },
   { to: '/ideas', icon: Lightbulb, label: 'Content Ideas' },
   { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
   { to: '/brand', icon: Sparkles, label: 'Brand Guide' },
