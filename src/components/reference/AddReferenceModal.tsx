@@ -7,8 +7,11 @@ import {
   PLATFORM_LABELS,
   FORMAT_LABELS,
   PLATFORM_FORMATS,
+  PROGRAM_LABELS,
+  PROGRAM_LIST,
   type PlatformType,
   type ContentFormatType,
+  type ProgramType,
 } from '@/types'
 
 interface AddReferenceModalProps {
@@ -22,6 +25,7 @@ export function AddReferenceModal({ onClose }: AddReferenceModalProps) {
   const [title, setTitle] = useState('')
   const [platform, setPlatform] = useState<PlatformType>('instagram')
   const [contentFormat, setContentFormat] = useState<ContentFormatType>('reels')
+  const [programType, setProgramType] = useState<ProgramType>('other')
   const [collectionId, setCollectionId] = useState<string>('')
   const [tagInput, setTagInput] = useState('')
   const [tags, setTags] = useState<string[]>([])
@@ -63,6 +67,7 @@ export function AddReferenceModal({ onClose }: AddReferenceModalProps) {
         title: title.trim(),
         platform,
         content_format: contentFormat,
+        program_type: programType,
         collection_id: collectionId || null,
         tags,
       })
@@ -137,6 +142,20 @@ export function AddReferenceModal({ onClose }: AddReferenceModalProps) {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* SMCC 프로그램 */}
+          <div>
+            <label className="block text-xs font-medium text-[#0B3558] mb-1.5">SMCC 프로그램</label>
+            <select
+              value={programType}
+              onChange={(e) => setProgramType(e.target.value as ProgramType)}
+              className={INPUT_CLASS}
+            >
+              {PROGRAM_LIST.map((p) => (
+                <option key={p} value={p}>{PROGRAM_LABELS[p]}</option>
+              ))}
+            </select>
           </div>
 
           {/* 컬렉션 (선택사항) */}

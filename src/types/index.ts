@@ -1,3 +1,42 @@
+// ─── SMCC Program Type ───────────────────────────────────────────
+
+export type ProgramType =
+  | 'daily_coffee_chat'
+  | 'espresso_run'
+  | 'book_dive'
+  | 'morning_rave'
+  | 'smcc_talk'
+  | 'smcc_cinema'
+  | 'breakfast'
+  | 'sunrise_meetup'
+  | 'travel_trip'
+  | 'wellness_class'
+  | 'global_meetup'
+  | 'brand_collaboration'
+  | 'community_event'
+  | 'corporate_wellness'
+  | 'other'
+
+export const PROGRAM_LABELS: Record<ProgramType, string> = {
+  daily_coffee_chat: 'Daily Coffee Chat',
+  espresso_run: 'Espresso Run',
+  book_dive: 'Book Dive',
+  morning_rave: 'Morning Rave',
+  smcc_talk: 'SMCC Talk',
+  smcc_cinema: 'SMCC Cinema',
+  breakfast: 'Breakfast',
+  sunrise_meetup: 'Sunrise Meetup',
+  travel_trip: 'Travel Trip',
+  wellness_class: 'Wellness Class',
+  global_meetup: 'Global Meetup',
+  brand_collaboration: 'Brand Collaboration',
+  community_event: 'Community Event',
+  corporate_wellness: 'Corporate Wellness',
+  other: 'Other',
+}
+
+export const PROGRAM_LIST = Object.keys(PROGRAM_LABELS) as ProgramType[]
+
 // ─── Platform / Format ───────────────────────────────────────────
 
 export type PlatformType =
@@ -73,6 +112,7 @@ export interface SavedReference {
   title: string
   platform: PlatformType
   content_format: ContentFormatType
+  program_type: ProgramType
   thumbnail_url: string | null
   status: ReferenceStatus
   is_favorite: boolean
@@ -94,6 +134,7 @@ export interface CreateReferenceInput {
   title: string
   platform: PlatformType
   content_format: ContentFormatType
+  program_type?: ProgramType
   collection_id?: string | null
   tags?: string[]
   thumbnail_url?: string | null
@@ -106,6 +147,7 @@ export interface UpdateReferenceInput {
   title?: string
   platform?: PlatformType
   content_format?: ContentFormatType
+  program_type?: ProgramType
   collection_id?: string | null
   thumbnail_url?: string | null
   status?: ReferenceStatus

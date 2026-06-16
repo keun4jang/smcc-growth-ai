@@ -67,6 +67,7 @@ export async function createReference(
       title: input.title,
       platform: input.platform,
       content_format: input.content_format,
+      program_type: input.program_type ?? 'other',
       collection_id: input.collection_id ?? null,
       tags: input.tags ?? [],
       thumbnail_url: input.thumbnail_url ?? null,

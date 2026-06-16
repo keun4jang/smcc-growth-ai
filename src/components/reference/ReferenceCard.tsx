@@ -2,7 +2,7 @@ import { Star, ExternalLink } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useToggleFavorite } from '@/hooks/useReferences'
-import { PLATFORM_LABELS, FORMAT_LABELS } from '@/types'
+import { PLATFORM_LABELS, FORMAT_LABELS, PROGRAM_LABELS } from '@/types'
 import type { SavedReference } from '@/types'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -87,6 +87,11 @@ export function ReferenceCard({ reference: ref }: ReferenceCardProps) {
           <span className={cn('px-1.5 py-0.5 rounded text-[15px]', STATUS_STYLES[ref.status])}>
             {ref.status}
           </span>
+          {ref.program_type && ref.program_type !== 'other' && (
+            <span className="px-1.5 py-0.5 rounded text-[15px] bg-[#e6f7fa] text-[#00899e]">
+              {PROGRAM_LABELS[ref.program_type]}
+            </span>
+          )}
         </div>
 
         {/* 제목 */}
