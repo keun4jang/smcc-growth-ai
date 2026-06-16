@@ -65,24 +65,71 @@ interface EnrichedVideo extends YouTubeVideo {
   whyFit: string
 }
 
-function VideoModal({ video, onClose }: { video: EnrichedVideo; onClose: () => void }) {
+function VideoModal({ video, onClose, onPrev, onNext, hasPrev, hasNext, onSave, saved }: {
+  video: EnrichedVideo
+  onClose: () => void
+  onPrev: () => void
+  onNext: () => void
+  hasPrev: boolean
+  hasNext: boolean
+  onSave: () => void
+  saved: boolean
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div className="w-full max-w-2xl bg-black rounded-2xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        {/* 헤더 */}
         <div className="flex items-center justify-between px-4 py-3 bg-[#111]">
-          <p className="text-white text-sm font-medium line-clamp-1 flex-1 mr-3">{video.title}</p>
+          <div className="flex items-center gap-2 flex-1 min-w-0 mr-3">
+            <button onClick={onPrev} disabled={!hasPrev}
+              className="flex-shrink-0 w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:bg-white/20 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <button onClick={onNext} disabled={!hasNext}
+              className="flex-shrink-0 w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:bg-white/20 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+            <p className="text-white text-sm font-medium line-clamp-1">{video.title}</p>
+          </div>
           <button onClick={onClose} className="text-white/60 hover:text-white transition-colors flex-shrink-0">
             <X size={20} />
           </button>
         </div>
+
+        {/* 영상 */}
         <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
           <iframe
+            key={video.id}
             className="absolute inset-0 w-full h-full"
             src={`https://www.youtube.com/embed/${video.id}?autoplay=1`}
             title={video.title}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
+        </div>
+
+        {/* 하단: 점수 + 저장 */}
+        <div className="flex items-center justify-between px-4 py-3 bg-[#111]">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#00b1cd]" />
+              <span className="text-white/70 text-xs">브랜드 {video.brandFit}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#F43F55]" />
+              <span className="text-white/70 text-xs">자극 {video.cringeRisk}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#FDB334]" />
+              <span className="text-white/70 text-xs">성장 {video.growthPotential}</span>
+            </div>
+          </div>
+          <button onClick={onSave} disabled={saved}
+            className={cn('flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
+              saved ? 'bg-[#00899e] text-white cursor-default' : 'bg-[#00b1cd] text-white hover:bg-[#008fa6]')}>
+            {saved ? <Check size={13} /> : <BookmarkPlus size={13} />}
+            {saved ? '저장됨' : '저장하기'}
+          </button>
         </div>
       </div>
     </div>
@@ -173,6 +220,7 @@ export function DiscoverPage() {
   const [savedVideoIds, setSavedVideoIds] = useState<Set<string>>(new Set())
   const [savedPhotoIds, setSavedPhotoIds] = useState<Set<number>>(new Set())
   const [playingVideo, setPlayingVideo] = useState<EnrichedVideo | null>(null)
+  const [playingIndex, setPlayingIndex] = useState<number>(-1)
 
   const videoCategories = PROGRAM_CATEGORIES
   const imageCategories = IMAGE_CATEGORIES
@@ -303,9 +351,9 @@ export function DiscoverPage() {
 
       {!loading && mode === 'video' && videos.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {videos.map((v) => (
+          {videos.map((v, idx) => (
             <VideoCard key={v.id} video={v}
-              onPlay={() => setPlayingVideo(v)}
+              onPlay={() => { setPlayingVideo(v); setPlayingIndex(idx) }}
               onSave={() => handleSaveVideo(v, currentCats[activeCat]?.key ?? 'other')}
               saved={savedVideoIds.has(v.id)} />
           ))}
@@ -325,7 +373,26 @@ export function DiscoverPage() {
         </div>
       )}
 
-      {playingVideo && <VideoModal video={playingVideo} onClose={() => setPlayingVideo(null)} />}
+      {playingVideo && (
+        <VideoModal
+          video={playingVideo}
+          onClose={() => setPlayingVideo(null)}
+          hasPrev={playingIndex > 0}
+          hasNext={playingIndex < videos.length - 1}
+          onPrev={() => {
+            const idx = playingIndex - 1
+            setPlayingIndex(idx)
+            setPlayingVideo(videos[idx])
+          }}
+          onNext={() => {
+            const idx = playingIndex + 1
+            setPlayingIndex(idx)
+            setPlayingVideo(videos[idx])
+          }}
+          onSave={() => handleSaveVideo(playingVideo, currentCats[activeCat]?.key ?? 'other')}
+          saved={savedVideoIds.has(playingVideo.id)}
+        />
+      )}
     </div>
   )
 }
